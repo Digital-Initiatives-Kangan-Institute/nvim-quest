@@ -1,0 +1,44 @@
+id: navigation_document_01
+title: The Ancient Scroll
+lesson: Line and Document Motion
+region: Navigation
+narrative: >
+  A long archive. Leap between its header, its index, and its exit rune
+  instead of crawling line by line.
+objective: Travel between distant sections using gg and G.
+start_text:
+  - "LEVEL HEADER"
+  - ""
+  - "The expedition entered the northern hall."
+  - "A damaged map rested beside the doorway."
+  - "The first inscription mentioned a sleeping dragon."
+  - ""
+  - "MAGIC NOTES"
+  - ""
+  - "The blue rune opens the lower chamber."
+  - "The silver rune reveals a hidden passage."
+  - "The gold rune returns the traveller to the entrance."
+  - ""
+  - "DRAGON INDEX"
+  - ""
+  - "Fire dragon: eastern cavern"
+  - "Frost dragon: lower vault"
+  - "Storm dragon: ruined tower"
+  - ""
+  - "EXIT RUNE"
+start_cursor: [6, 0]
+targets:
+  - {row: 18, col: 0, label: "'EXIT RUNE'"}
+  - {row: 0, col: 0, label: "'LEVEL HEADER'"}
+  - {row: 12, col: 0, label: "'DRAGON INDEX'"}
+  - {row: 0, col: 0, label: "'LEVEL HEADER'"}
+  - {row: 18, col: 0, label: "'EXIT RUNE'"}
+allowed_commands: [h, j, k, l, gg, G]
+introduced: [gg, G]
+hints:
+  - "'G' jumps to the bottom of the document."
+  - "'gg' jumps to the top of the document."
+  - "Combine with 'j' for stops in the middle."
+reference_actions: 16
+mastery:
+  required_keys: [gg, G]

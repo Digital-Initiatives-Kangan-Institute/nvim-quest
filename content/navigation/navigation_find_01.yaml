@@ -1,0 +1,25 @@
+id: navigation_find_01
+title: Hidden Rune
+lesson: Character Finding
+region: Navigation
+narrative: >
+  Commas hide runes between the merchant's goods. 'f,' leaps onto a comma;
+  't,' stops just before one. Alternate between them.
+objective: Visit each comma position in order using f and t.
+start_text:
+  - "iron, silver, amber, crystal"
+start_cursor: [0, 0]
+targets:
+  - {row: 0, col: 4, label: "the first comma"}
+  - {row: 0, col: 11, label: "just before the second comma"}
+  - {row: 0, col: 12, label: "the second comma"}
+  - {row: 0, col: 18, label: "just before the third comma"}
+  - {row: 0, col: 19, label: "the third comma"}
+allowed_commands: [h, l, f, t]
+introduced: [f, t]
+hints:
+  - "Type 'f' then ',' to land ON the next comma."
+  - "Type 't' then ',' to stop just BEFORE the next comma."
+reference_actions: 5
+mastery:
+  required_keys: [f, t]

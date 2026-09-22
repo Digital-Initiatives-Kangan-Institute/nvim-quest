@@ -1,0 +1,26 @@
+id: navigation_word_03
+title: Edge Walker
+lesson: Word Motion
+region: Navigation
+narrative: >
+  The old words blur beginnings and endings. Prove you can tell them apart
+  by alternating between word starts and word ends.
+objective: Move between beginnings and endings of words.
+start_text:
+  - "ancient silver lantern hidden compass"
+start_cursor: [0, 0]
+targets:
+  - {row: 0, col: 13, label: "end of 'silver'"}
+  - {row: 0, col: 15, label: "beginning of 'lantern'"}
+  - {row: 0, col: 36, label: "end of 'compass'"}
+  - {row: 0, col: 23, label: "beginning of 'hidden'"}
+  - {row: 0, col: 0, label: "beginning of 'ancient'"}
+  - {row: 0, col: 21, label: "end of 'lantern'"}
+allowed_commands: [h, l, w, b, e]
+introduced: []
+hints:
+  - "From a word's beginning, 'e' reaches its end in one hop."
+  - "From a word's end, 'w' steps to the next beginning."
+reference_actions: 14
+mastery:
+  required_families: [word]

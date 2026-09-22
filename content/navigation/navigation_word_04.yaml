@@ -1,0 +1,26 @@
+id: navigation_word_04
+title: Word Trial
+lesson: Word Motion
+region: Navigation
+narrative: >
+  No guide this time. Collect the seven clues scattered across the trader's
+  ledger using only your judgement of beginnings and endings.
+objective: Collect the clues in order without command hints.
+start_text:
+  - "ancient map silver key dragon scroll hidden doorway"
+start_cursor: [0, 0]
+targets:
+  - {row: 0, col: 12, label: "beginning of 'silver'"}
+  - {row: 0, col: 21, label: "end of 'key'"}
+  - {row: 0, col: 8, label: "beginning of 'map'"}
+  - {row: 0, col: 23, label: "beginning of 'dragon'"}
+  - {row: 0, col: 35, label: "end of 'scroll'"}
+  - {row: 0, col: 0, label: "beginning of 'ancient'"}
+  - {row: 0, col: 50, label: "end of 'doorway'"}
+allowed_commands: [h, l, w, b, e]
+introduced: []
+hints:
+  - "Plan the route: forward legs want 'w'/'e', retreats want 'b'."
+reference_actions: 26
+mastery:
+  required_keys: [w, b, e]

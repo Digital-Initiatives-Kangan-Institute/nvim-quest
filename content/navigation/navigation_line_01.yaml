@@ -1,0 +1,26 @@
+id: navigation_line_01
+title: The Line Gates
+lesson: Line and Document Motion
+region: Navigation
+narrative: >
+  An indented gate inscription. The absolute beginning, the first word,
+  and the line's end are three different gates — open each in turn.
+objective: Visit important positions on the indented line.
+start_text:
+  - "        open_gate()"
+start_cursor: [0, 10]
+targets:
+  - {row: 0, col: 8, label: "first non-blank character"}
+  - {row: 0, col: 18, label: "end of the line"}
+  - {row: 0, col: 0, label: "absolute beginning of the line"}
+  - {row: 0, col: 18, label: "end of the line"}
+  - {row: 0, col: 8, label: "first non-blank character"}
+allowed_commands: [h, l, "0", ^, $]
+introduced: ["0", ^, $]
+hints:
+  - "'^' jumps to the first non-blank character."
+  - "'$' jumps to the end of the line."
+  - "'0' jumps to the very first column, even if it is blank."
+reference_actions: 5
+mastery:
+  required_keys: ["0", ^, $]

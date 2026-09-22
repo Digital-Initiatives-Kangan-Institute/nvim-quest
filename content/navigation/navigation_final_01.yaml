@@ -1,0 +1,40 @@
+id: navigation_final_01
+title: Trial of the Navigator
+lesson: Final Challenge
+region: Navigation
+narrative: >
+  The manifest chamber holds relics, code, and repeated warnings.
+  No guide this time — recover everything in order, choosing each
+  motion by scale and destination.
+objective: Recover the relics using every motion family you have learned.
+start_text:
+  - "NAVIGATOR MANIFEST"
+  - ""
+  - "Silver Key: brass lock"
+  - "Dragon Scroll: fire ritual"
+  - "Lost Compass: true north"
+  - ""
+  - "notes on the lower hall"
+  - "dragon ember"
+  - "  exit_rune()"
+  - "dragon scale"
+  - ""
+  - "dragon hoard"
+  - ""
+  - "END OF MANIFEST"
+start_cursor: [0, 0]
+targets:
+  - {row: 2, col: 0, label: "beginning of 'Silver Key'"}
+  - {row: 3, col: 12, label: "end of 'Dragon Scroll'"}
+  - {row: 4, col: 12, label: "the ':' after 'Lost Compass'"}
+  - {row: 8, col: 2, label: "first non-blank of the 'exit_rune' line"}
+  - {row: 11, col: 0, label: "final 'dragon'"}
+  - {row: 13, col: 0, label: "document footer"}
+  - {row: 0, col: 0, label: "document header"}
+allowed_commands: [h, j, k, l, w, b, e, "0", ^, $, gg, G, f, t, /, n, N]
+introduced: []
+hints:
+  - "Small hops: w/b/e. Line edges: 0/^/$. Far away: gg/G. Punctuation: f/t. Repeats: /."
+reference_actions: 15
+mastery:
+  min_families: 4

@@ -1,0 +1,28 @@
+id: navigation_character_03
+title: Cursor Trial
+lesson: Character Motion
+region: Navigation
+narrative: >
+  Artifacts are scattered across a two-dimensional vault.
+  Retrieve them in order, planning moves across rows and columns.
+objective: Retrieve all artifacts in the specified order using h, j, k, l.
+start_text:
+  - "sword      gem"
+  - "shield     key"
+  - "potion     rune"
+  - "map        scroll"
+start_cursor: [0, 0]
+targets:
+  - {row: 1, col: 11, label: "the 'k' in 'key'"}
+  - {row: 2, col: 0, label: "the 'p' in 'potion'"}
+  - {row: 3, col: 11, label: "the 's' in 'scroll'"}
+  - {row: 0, col: 0, label: "the 's' in 'sword'"}
+  - {row: 2, col: 11, label: "the 'r' in 'rune'"}
+allowed_commands: [h, j, k, l]
+introduced: []
+hints:
+  - "Move vertically with j/k first, then walk horizontally with h/l."
+  - "No hints name the keys now — plan each leg yourself."
+reference_actions: 63
+mastery:
+  required_families: [character]

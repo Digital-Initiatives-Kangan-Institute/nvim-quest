@@ -1,0 +1,28 @@
+id: navigation_find_02
+title: Rune Hunter
+lesson: Character Finding
+region: Navigation
+narrative: >
+  A spell invocation with nested punctuation. Mix character finding
+  with word motions to hunt each rune.
+objective: Navigate the invocation using f, t, and word motions.
+start_text:
+  - "cast_spell(fire, frost, storm, arcane)"
+start_cursor: [0, 0]
+targets:
+  - {row: 0, col: 10, label: "the opening parenthesis"}
+  - {row: 0, col: 15, label: "the first comma"}
+  - {row: 0, col: 17, label: "beginning of 'frost'"}
+  - {row: 0, col: 21, label: "just before the comma after 'frost'"}
+  - {row: 0, col: 31, label: "beginning of 'arcane'"}
+  - {row: 0, col: 37, label: "the closing parenthesis"}
+  - {row: 0, col: 9, label: "end of 'cast_spell'"}
+allowed_commands: [h, l, w, b, e, f, t]
+introduced: []
+hints:
+  - "'f(' jumps straight to the parenthesis."
+  - "Retreat across words with 'b', then finish with 'e'."
+reference_actions: 19
+mastery:
+  required_keys: [f, t]
+  min_families: 2

@@ -1,0 +1,32 @@
+id: navigation_search_01
+title: Echoes in the Archive
+lesson: Search
+region: Navigation
+narrative: >
+  The word 'dragon' echoes through the archive. Search once, then ride
+  the echoes forward with 'n' and backward with 'N'.
+objective: Start one search for 'dragon', then move between occurrences.
+start_text:
+  - "dragon sword"
+  - "magic ring"
+  - "dragon shield"
+  - "ancient scroll"
+  - "dragon crown"
+  - "crystal doorway"
+  - "dragon key"
+start_cursor: [0, 0]
+targets:
+  - {row: 0, col: 0, label: "first 'dragon'"}
+  - {row: 4, col: 0, label: "third 'dragon'"}
+  - {row: 2, col: 0, label: "second 'dragon'"}
+  - {row: 6, col: 0, label: "fourth 'dragon'"}
+  - {row: 0, col: 0, label: "first 'dragon'"}
+allowed_commands: [h, j, k, l, /, n, N]
+introduced: [/, n, N]
+hints:
+  - "Type '/dragon' and Enter to start the search."
+  - "'n' goes to the next match, 'N' to the previous one."
+reference_actions: 9
+mastery:
+  required_keys: [n, N]
+  single_search: true

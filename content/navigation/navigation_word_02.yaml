@@ -1,0 +1,25 @@
+id: navigation_word_02
+title: Word Explorer
+lesson: Word Motion
+region: Navigation
+narrative: >
+  A longer trail of supplies. Choose forward or backward word motions
+  and land on beginnings or endings as each destination demands.
+objective: Visit each location in the specified order.
+start_text:
+  - "map rope lantern compass crystal"
+start_cursor: [0, 0]
+targets:
+  - {row: 0, col: 17, label: "beginning of 'compass'"}
+  - {row: 0, col: 4, label: "beginning of 'rope'"}
+  - {row: 0, col: 15, label: "end of 'lantern'"}
+  - {row: 0, col: 0, label: "beginning of 'map'"}
+  - {row: 0, col: 31, label: "end of 'crystal'"}
+allowed_commands: [h, l, w, b, e]
+introduced: []
+hints:
+  - "Chain 'w' to run forward several words."
+  - "Use 'e' when the destination glows at a word's end."
+reference_actions: 15
+mastery:
+  required_keys: [w, b, e]

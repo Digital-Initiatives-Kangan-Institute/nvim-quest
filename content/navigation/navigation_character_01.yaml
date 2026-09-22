@@ -1,0 +1,24 @@
+id: navigation_character_01
+title: First Steps
+lesson: Character Motion
+region: Navigation
+narrative: >
+  You wake on an open field. Three markers glow in the distance.
+  Walk to each one in order — your cursor is your avatar.
+objective: Visit the specified characters in order using h and l.
+start_text:
+  - "sword shield potion"
+start_cursor: [0, 0]
+targets:
+  - {row: 0, col: 6, label: "the 's' in 'shield'"}
+  - {row: 0, col: 13, label: "the 'p' in 'potion'"}
+  - {row: 0, col: 0, label: "the 's' in 'sword'"}
+allowed_commands: [h, l]
+introduced: [h, l]
+hints:
+  - "Press 'l' to step right toward 'shield'."
+  - "Press 'h' to step left, back toward 'sword'."
+  - "Each press moves one character. Repeat the key to keep walking."
+reference_actions: 26
+mastery:
+  required_families: [character]

@@ -1,0 +1,26 @@
+id: navigation_word_01
+title: Stepping Stones
+lesson: Word Motion
+region: Navigation
+narrative: >
+  Cross the stream on word-stones. 'w' leaps to the next word's beginning,
+  'e' lands on a word's end, and 'b' hops back.
+objective: Visit each target in order using w, b, and e.
+start_text:
+  - "map rope lantern compass"
+start_cursor: [0, 0]
+targets:
+  - {row: 0, col: 4, label: "beginning of 'rope'"}
+  - {row: 0, col: 9, label: "beginning of 'lantern'"}
+  - {row: 0, col: 15, label: "end of 'lantern'"}
+  - {row: 0, col: 4, label: "beginning of 'rope'"}
+  - {row: 0, col: 23, label: "end of 'compass'"}
+allowed_commands: [h, l, w, b, e]
+introduced: [w, b, e]
+hints:
+  - "'w' moves to the beginning of the next word."
+  - "'e' moves to the end of the word."
+  - "'b' moves back to the beginning of the previous word."
+reference_actions: 8
+mastery:
+  required_families: [word]

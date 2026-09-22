@@ -1,0 +1,26 @@
+id: navigation_character_02
+title: The Narrow Path
+lesson: Character Motion
+region: Navigation
+narrative: >
+  A narrow path runs north to south. Climb down past the markers,
+  correct your overshoot, then descend to the map.
+objective: Visit the specified items in order using j and k.
+start_text:
+  - "sword"
+  - "shield"
+  - "potion"
+  - "map"
+start_cursor: [0, 0]
+targets:
+  - {row: 2, col: 0, label: "the 'p' in 'potion'"}
+  - {row: 1, col: 0, label: "the 's' in 'shield'"}
+  - {row: 3, col: 0, label: "the 'm' in 'map'"}
+allowed_commands: [h, j, k, l]
+introduced: [j, k]
+hints:
+  - "Press 'j' to move down one line."
+  - "Overshot? Press 'k' to move back up."
+reference_actions: 5
+mastery:
+  required_families: [character]
