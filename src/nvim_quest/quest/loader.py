@@ -19,6 +19,8 @@ def load_levels(directory: str | Path) -> list[Level]:
     levels: list[Level] = []
     for path in sorted(Path(directory).glob("*.yaml")):
         levels.append(load_level(path))
+    # Pedagogical order, not filename order.
+    levels.sort(key=lambda l: (l.order, l.id))
     return levels
 
 

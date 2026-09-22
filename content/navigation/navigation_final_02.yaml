@@ -1,0 +1,75 @@
+id: navigation_final_02
+order: 20
+title: The Grand Archive
+lesson: Final Challenge
+region: Navigation
+narrative: >
+  Forty-five shelves, six kinds of movement, one navigator. Nothing here
+  names a key — choose character, word, line, document, find, and search
+  motions by scale and destination, and prove the whole toolkit.
+objective: Master the grand archive using every motion family.
+start_text:
+  - "GRAND ARCHIVE OF MOTION"
+  - ""
+  - "Inventory: north vault"
+  - "Silver Key: brass lock"
+  - "Map, compass, lantern"
+  - "Torn scroll: fire ritual"
+  - ""
+  - "Notes on the lower hall"
+  - "The sigil glows faintly here."
+  - "  etched rune circle"
+  - "The sigil marks the door."
+  - ""
+  - "Inventory: south vault"
+  - "Iron Gate: rusted chain"
+  - "Rope, torch, ember"
+  - "Cracked lens: silver frame"
+  - ""
+  - "Code of the gatekeeper"
+  - "  open_gate()"
+  - "  seal_door()"
+  - "  light_rune()"
+  - ""
+  - "The sigil burns above the gate."
+  - ""
+  - "Bestiary index"
+  - "Fire drake: eastern cavern"
+  - "Frost drake: lower vault"
+  - "Storm drake, ruined tower"
+  - "Ember drake: ash desert"
+  - ""
+  - "The sigil sleeps in the dark."
+  - ""
+  - "Provisions for the road"
+  - "Bread, cheese, apples"
+  - "Waterskin: leather strap"
+  - ""
+  - "Final inventory"
+  - "Gold Crown: jeweled band"
+  - "Dagger, cloak, boots"
+  - ""
+  - "The last sigil waits below."
+  - ""
+  - "SECOND SEAL"
+  - ""
+  - "END OF ARCHIVE"
+start_cursor: [0, 0]
+targets:
+  - {row: 4, col: 5, label: "beginning of 'compass'"}
+  - {row: 4, col: 20, label: "end of 'lantern'"}
+  - {row: 5, col: 11, label: "the ':' after 'Torn scroll'"}
+  - {row: 14, col: 10, label: "just before the second comma"}
+  - {row: 18, col: 2, label: "first non-blank of the 'open_gate' line"}
+  - {row: 20, col: 13, label: "end of the 'light_rune' line"}
+  - {row: 22, col: 4, label: "third 'sigil'"}
+  - {row: 40, col: 9, label: "final 'sigil'"}
+  - {row: 44, col: 0, label: "archive footer"}
+  - {row: 0, col: 0, label: "archive header"}
+allowed_commands: [h, j, k, l, w, b, e, "0", ^, $, gg, G, f, t, /, n, N]
+introduced: []
+hints:
+  - "Small hops: w/b/e. Line edges: 0/^/$. Far away: gg/G with counts. Punctuation: f/t. Repeats: /."
+reference_actions: 20
+mastery:
+  required_families: [character, word, line, document, find, search]

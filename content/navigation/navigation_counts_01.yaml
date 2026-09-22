@@ -1,0 +1,33 @@
+id: navigation_counts_01
+order: 8
+title: Long Strides
+lesson: Efficient Motion
+region: Navigation
+narrative: >
+  The armoury shelves stretch far. Walking one step at a time will take all
+  day — prefix any motion with a number to repeat it, and stride instead.
+objective: Reach each shelf using counts with j and k.
+start_text:
+  - "torch"
+  - "rope"
+  - "coin"
+  - "lantern"
+  - "map"
+  - "compass"
+  - "scroll"
+  - "rune"
+  - "key"
+  - "crown"
+start_cursor: [0, 0]
+targets:
+  - {row: 7, col: 0, label: "the 'rune' shelf"}
+  - {row: 2, col: 0, label: "the 'coin' shelf"}
+  - {row: 9, col: 0, label: "the 'crown' shelf"}
+allowed_commands: [h, j, k, l]
+introduced: []
+hints:
+  - "Type '7j' to move down 7 lines in a single action."
+  - "Gold rank needs 3 actions — only counts can do it."
+reference_actions: 3
+mastery:
+  required_families: [character]

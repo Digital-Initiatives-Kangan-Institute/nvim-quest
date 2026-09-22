@@ -129,6 +129,39 @@ def test_find_f_and_t():
     assert b.pos == (0, 12)
 
 
+def test_e_stops_at_line_end():
+    # 'e' must not merge same-class words across a newline.
+    b = make(["silver lantern", "brass compass"], 0, 5)
+    assert motions.move_e(b) is True
+    assert b.pos == (0, 13)  # end of lantern, not end of brass
+
+
+def test_e_crosses_line_to_next_word():
+    # From the last word of a line, 'e' still reaches the next line's word.
+    b = make(["silver lantern", "brass compass"], 0, 13)
+    assert motions.move_e(b) is True
+    assert b.pos == (1, 4)  # end of brass
+
+
+def test_e_stops_on_punctuation_word():
+    # A comma is its own word: 'e' lands on it (real vim behavior).
+    b = make(["Map, compass"], 0, 2)
+    assert motions.move_e(b) is True
+    assert b.pos == (0, 3)
+
+
+def test_b_stops_at_line_start():
+    b = make(["ab", "cd"], 1, 1)
+    assert motions.move_b(b) is True
+    assert b.pos == (1, 0)  # start of cd, not swallowed into ab
+
+
+def test_b_crosses_line_to_prev_word():
+    b = make(["ab", "cd"], 1, 0)
+    assert motions.move_b(b) is True
+    assert b.pos == (0, 0)  # start of ab
+
+
 def test_find_miss_is_noop():
     b = make(["abc"], 0, 0)
     assert motions.move_f(b, "z") is False

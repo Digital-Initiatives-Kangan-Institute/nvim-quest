@@ -1,0 +1,41 @@
+id: navigation_document_04
+order: 13
+title: Middle Ground
+lesson: Line and Document Motion
+region: Navigation
+narrative: >
+  No headers, no footers — every station hides in the middle of the log.
+  Jump close with gg and G, then walk the last paces precisely.
+objective: Visit five mid-document stations without top or bottom targets.
+start_text:
+  - "WAYSTATION LOG"
+  - ""
+  - "Morning entries"
+  - "The crew loaded the wagons at dawn."
+  - "  checked harness straps"
+  - ""
+  - "Midday entries"
+  - "The river crossing took three hours."
+  - "  lost one brass compass"
+  - ""
+  - "Evening entries"
+  - "The storm broke over the ridge."
+  - "  lit the signal fire"
+  - ""
+  - "Night entries"
+  - "The watch changed at midnight."
+start_cursor: [0, 0]
+targets:
+  - {row: 4, col: 2, label: "first non-blank of the harness line"}
+  - {row: 7, col: 35, label: "end of the river crossing line"}
+  - {row: 10, col: 0, label: "'Evening entries' heading"}
+  - {row: 8, col: 0, label: "absolute beginning of the compass line"}
+  - {row: 12, col: 2, label: "first non-blank of the signal line"}
+allowed_commands: [h, j, k, l, "0", ^, $, gg, G]
+introduced: []
+hints:
+  - "Reset a drifted column with '0' before stepping down."
+  - "After the heading, '2k' returns to the compass line in one action."
+reference_actions: 9
+mastery:
+  required_keys: ["0", ^, $]

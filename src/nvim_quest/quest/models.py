@@ -30,6 +30,7 @@ class Level:
     id: str
     title: str
     lesson: str
+    order: int = 0
     region: str = "Navigation"
     narrative: str = ""
     objective: str = ""
@@ -65,6 +66,7 @@ def level_from_dict(data: dict) -> Level:
         id=data["id"],
         title=data.get("title", data["id"]),
         lesson=data.get("lesson", ""),
+        order=int(data.get("order", 0)),
         region=data.get("region", "Navigation"),
         narrative=data.get("narrative", ""),
         objective=data.get("objective", ""),

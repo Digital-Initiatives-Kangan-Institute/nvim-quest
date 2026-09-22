@@ -958,13 +958,34 @@ A stronger readiness requirement for unlocking the Editing region may be:
 ```text
 Lesson 1: Character Motion       3 levels
 Lesson 2: Word Motion            4 levels
-Lesson 3: Line and Document      3 levels
+Efficient Motion (counts)        1 level
+Lesson 3: Line and Document      5 levels
 Lesson 4: Character Finding      2 levels
-Lesson 5: Search                 1 level
-Final Navigation Challenge       1 level
-                                ─────────
-Total                           14 levels
+Lesson 5: Search                 3 levels
+Final Navigation Challenges      2 levels
+                                 ─────────
+Total                           20 levels
 ```
+
+# Expansion Addendum (post-MVP-spec)
+
+Six levels were added beyond the original 14 to strengthen Search,
+Document navigation, and efficiency with counts. Levels are ordered
+pedagogically via the `order` field in each level file (menu follows
+loader order, not filename order).
+
+- `navigation_counts_01` (order 8, Long Strides): introduces `N<motion>`
+  counts; Gold (3 actions) requires counts.
+- `navigation_document_03` (order 12, The Deep Archive): 22-line document,
+  `gg`/`G` anchors plus counted `j`/`k`, `^`/`$` edges.
+- `navigation_document_04` (order 13, Middle Ground): mid-document targets
+  only, no top/bottom anchors.
+- `navigation_search_02` (order 17, Shifting Echoes): alternating search
+  terms requiring re-search, forward and backward (`n`/`N`).
+- `navigation_search_03` (order 18, Pinpoint): search for coarse positioning
+  plus word motions for precision.
+- `navigation_final_02` (order 20, The Grand Archive): 45-line capstone
+  requiring all six motion families for Mastery.
 
 # Future Specification Work
 

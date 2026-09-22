@@ -1,0 +1,30 @@
+id: navigation_search_03
+order: 18
+title: Pinpoint
+lesson: Search
+region: Navigation
+narrative: >
+  Search gets you close; motions finish the job. Land on each silver echo,
+  then step to the exact edge the quest demands.
+objective: Combine search jumps with word-motion precision.
+start_text:
+  - "brass lantern"
+  - "silver map"
+  - "brass compass"
+  - "silver lantern"
+  - "brass key"
+  - "silver compass"
+start_cursor: [0, 0]
+targets:
+  - {row: 3, col: 13, label: "end of the 'lantern' on the second 'silver' line"}
+  - {row: 5, col: 7, label: "beginning of 'compass' on the third 'silver' line"}
+  - {row: 1, col: 9, label: "end of 'map' on the first 'silver' line"}
+allowed_commands: [h, j, k, l, w, b, e, /, n, N]
+introduced: []
+hints:
+  - "'/silver' plus 'n' reaches each echo's start — then 'e' or 'w'."
+  - "Retreat with 'N' when the destination lies behind the cursor."
+reference_actions: 11
+mastery:
+  required_keys: [/, n, N]
+  min_families: 2

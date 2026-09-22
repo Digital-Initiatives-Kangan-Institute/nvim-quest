@@ -1,0 +1,32 @@
+id: navigation_search_02
+order: 17
+title: Shifting Echoes
+lesson: Search
+region: Navigation
+narrative: >
+  Two echoes share this archive — ember and frost. One search is no longer
+  enough: chase each echo in turn, forward and back.
+objective: Alternate between two search terms to visit six echoes.
+start_text:
+  - "ember torch"
+  - "frost map"
+  - "ember compass"
+  - "frost key"
+  - "ember crown"
+  - "frost scroll"
+start_cursor: [0, 0]
+targets:
+  - {row: 0, col: 0, label: "first 'ember'"}
+  - {row: 3, col: 0, label: "second 'frost'"}
+  - {row: 4, col: 0, label: "third 'ember'"}
+  - {row: 0, col: 0, label: "first 'ember'"}
+  - {row: 5, col: 0, label: "third 'frost'"}
+  - {row: 2, col: 0, label: "second 'ember'"}
+allowed_commands: [h, j, k, l, /, n, N]
+introduced: []
+hints:
+  - "Starting a new '/term' search replaces the old echo."
+  - "Ride 'N' backward when the target lies behind you."
+reference_actions: 12
+mastery:
+  required_keys: [/, n, N]

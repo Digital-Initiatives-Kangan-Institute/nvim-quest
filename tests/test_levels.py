@@ -35,10 +35,17 @@ SOLUTIONS: dict[str, list[str]] = {
         ["w", "w", "e", "e", "b", "b", "b", "w", "w", "w", "e", "e"]
         + ["b"] * 6 + ["e"] * 8
     ),
+    "navigation_counts_01": ["7j", "5k", "7j"],
     "navigation_line_01": ["^", "$", "0", "$", "^"],
     "navigation_document_01": ["G", "gg"] + ["j"] * 12 + ["gg", "G"],
     "navigation_document_02": (
         ["j", "j", "^", "j", "j", "$", "gg", "G", "k", "k", "l", "0", "^"]
+    ),
+    "navigation_document_03": (
+        ["4j", "^", "4j", "$", "gg", "G", "2k", "^", "k", "$"]
+    ),
+    "navigation_document_04": (
+        ["4j", "^", "3j", "$", "0", "3j", "2k", "4j", "^"]
     ),
     "navigation_find_01": ["f,", "t,", "f,", "t,", "f,"],
     "navigation_find_02": (
@@ -48,9 +55,20 @@ SOLUTIONS: dict[str, list[str]] = {
     "navigation_search_01": (
         ["/dragon", "n", "n", "N", "n", "n", "N", "N", "N"]
     ),
+    "navigation_search_02": (
+        ["/ember", "/frost", "n", "/ember", "/ember", "N", "N",
+         "/frost", "n", "n", "/ember", "n"]
+    ),
+    "navigation_search_03": (
+        ["/silver", "n", "e", "e", "n", "w", "N", "N", "N", "e", "e"]
+    ),
     "navigation_final_01": (
         ["j", "j", "j", "w", "e", "j", "j", "j", "j", "j",
          "^", "/dragon", "n", "G", "gg"]
+    ),
+    "navigation_final_02": (
+        ["4j", "w", "w", "e", "e", "e", "j", "0", "f:", "9j", "h",
+         "4j", "^", "2j", "$", "/sigil", "n", "n", "G", "gg"]
     ),
 }
 
@@ -62,20 +80,33 @@ EXPECTED_ORDER = [
     "navigation_word_02",
     "navigation_word_03",
     "navigation_word_04",
+    "navigation_counts_01",
     "navigation_line_01",
     "navigation_document_01",
     "navigation_document_02",
+    "navigation_document_03",
+    "navigation_document_04",
     "navigation_find_01",
     "navigation_find_02",
     "navigation_search_01",
+    "navigation_search_02",
+    "navigation_search_03",
     "navigation_final_01",
+    "navigation_final_02",
 ]
 
 
 def test_all_levels_present():
     ids = sorted(p.stem for p in NAV.glob("*.yaml"))
     assert ids == sorted(EXPECTED_ORDER)
-    assert len(ids) == 14
+    assert len(ids) == 20
+
+
+def test_levels_load_in_pedagogical_order():
+    from nvim_quest.quest.loader import load_levels
+
+    levels = load_levels(NAV)
+    assert [l.id for l in levels] == EXPECTED_ORDER
 
 
 @pytest.mark.parametrize("level_id", EXPECTED_ORDER)

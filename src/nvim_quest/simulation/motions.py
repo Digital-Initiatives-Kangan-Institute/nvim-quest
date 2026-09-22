@@ -125,9 +125,14 @@ def _e_once(lines: list[str], row: int, col: int) -> tuple[int, int] | None:
     else:
         row, col = pos
         pos = _next_pos(lines, row, col)
-    # Advance to end of this word run.
+    # Advance to end of this word run. A newline always ends the run,
+    # even mid-class (vim word motions stop at line ends here).
     cur = _classify(_char_at(lines, row, col))
-    while pos is not None and _classify(_char_at(lines, *pos)) == cur:
+    while (
+        pos is not None
+        and pos[0] == row
+        and _classify(_char_at(lines, *pos)) == cur
+    ):
         row, col = pos
         pos = _next_pos(lines, row, col)
     return (row, col)
@@ -139,7 +144,14 @@ def _b_once(lines: list[str], row: int, col: int) -> tuple[int, int] | None:
     pos = (row, col)
     cur = _classify(_char_at(lines, row, col))
     prev = _prev_pos(lines, row, col)
-    at_start = prev is None or _classify(_char_at(lines, *prev)) != cur or cur == "space"
+    # A newline always separates words: reaching across rows counts as
+    # being at a word start.
+    at_start = (
+        prev is None
+        or prev[0] != row
+        or _classify(_char_at(lines, *prev)) != cur
+        or cur == "space"
+    )
     if at_start:
         if prev is None:
             return None
@@ -150,10 +162,15 @@ def _b_once(lines: list[str], row: int, col: int) -> tuple[int, int] | None:
             if prev is None:
                 return None
             row, col = prev
-    # Now inside (or at end of) a word: walk back to its start.
+    # Now inside (or at end of) a word: walk back to its start,
+    # never crossing into the previous line's words.
     cur = _classify(_char_at(lines, row, col))
     prev = _prev_pos(lines, row, col)
-    while prev is not None and _classify(_char_at(lines, *prev)) == cur:
+    while (
+        prev is not None
+        and prev[0] == row
+        and _classify(_char_at(lines, *prev)) == cur
+    ):
         row, col = prev
         prev = _prev_pos(lines, row, col)
     return (row, col)

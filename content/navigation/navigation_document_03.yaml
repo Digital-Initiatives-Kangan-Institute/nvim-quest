@@ -1,0 +1,48 @@
+id: navigation_document_03
+order: 12
+title: The Deep Archive
+lesson: Line and Document Motion
+region: Navigation
+narrative: >
+  Twenty-two shelves of archive. Anchor yourself with gg and G, then count
+  your paces — walking the whole way is for beginners.
+objective: Survey the deep archive with document jumps and counted motions.
+start_text:
+  - "GRAND ARCHIVE"
+  - ""
+  - "Section One: maps"
+  - "The traveller charted the northern coast."
+  - "  rolled parchment"
+  - ""
+  - "Section Two: runes"
+  - "The silver rune sleeps beneath the hall."
+  - "The gold rune wakes at dusk."
+  - "  carved stone tablet"
+  - ""
+  - "Section Three: vaults"
+  - "Fire vault: eastern cavern"
+  - "Frost vault: lower deep"
+  - "  iron-bound chest"
+  - ""
+  - "Section Four: keys"
+  - "Brass key opens the gate."
+  - "Silver key opens the vault."
+  - "  hidden silver locket"
+  - ""
+  - "ARCHIVE SEAL"
+start_cursor: [0, 0]
+targets:
+  - {row: 4, col: 2, label: "first non-blank of the indented line"}
+  - {row: 8, col: 27, label: "end of 'The gold rune wakes at dusk.'"}
+  - {row: 0, col: 0, label: "top of the document"}
+  - {row: 21, col: 0, label: "bottom of the document"}
+  - {row: 19, col: 2, label: "first non-blank of the locket line"}
+  - {row: 18, col: 26, label: "end of 'Silver key opens the vault.'"}
+allowed_commands: [h, j, k, l, "0", ^, $, gg, G]
+introduced: []
+hints:
+  - "Anchor with G, then count upward: '2k'."
+  - "From the locket line, one 'k' plus '$' reaches the vault line's end."
+reference_actions: 10
+mastery:
+  required_keys: [^, $, gg, G]

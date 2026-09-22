@@ -34,7 +34,7 @@ async def test_play_level_one_end_to_end(tmp_path):
     store = ProgressStore(path=tmp_path / "save.json")
     app = NvimQuestApp(store=store)
     async with app.run_test() as pilot:
-        assert len(app.levels) == 14
+        assert len(app.levels) == 20
         await pilot.click("#level-navigation_character_01")
         assert isinstance(app.screen, QuestScreen)
         for _ in range(6):
@@ -57,7 +57,7 @@ async def test_search_level_flow(tmp_path):
 
     store = ProgressStore(path=tmp_path / "save.json")
     app = NvimQuestApp(store=store)
-    async with app.run_test(size=(100, 40)) as pilot:
+    async with app.run_test(size=(100, 70)) as pilot:
         await pilot.click("#level-navigation_search_01")
         assert isinstance(app.screen, QuestScreen)
         await pilot.press("slash")
@@ -86,7 +86,7 @@ async def test_line_motions_with_real_key_names(tmp_path):
     """
     store = ProgressStore(path=tmp_path / "save.json")
     app = NvimQuestApp(store=store)
-    async with app.run_test(size=(100, 40)) as pilot:
+    async with app.run_test(size=(100, 70)) as pilot:
         await pilot.click("#level-navigation_document_02")
         assert isinstance(app.screen, QuestScreen)
         keys = ["j", "j", "circumflex_accent", "j", "j", "dollar_sign",
@@ -103,7 +103,7 @@ async def test_find_level_with_real_key_names(tmp_path):
     """Hidden Rune: f<t> sequences where ',' arrives as 'comma'."""
     store = ProgressStore(path=tmp_path / "save.json")
     app = NvimQuestApp(store=store)
-    async with app.run_test(size=(100, 40)) as pilot:
+    async with app.run_test(size=(100, 70)) as pilot:
         await pilot.click("#level-navigation_find_01")
         assert isinstance(app.screen, QuestScreen)
         for key in ["f", "comma", "t", "comma", "f", "comma",
@@ -123,7 +123,7 @@ async def test_shift_does_not_cancel_pending_find(tmp_path):
     """
     store = ProgressStore(path=tmp_path / "save.json")
     app = NvimQuestApp(store=store)
-    async with app.run_test(size=(100, 40)) as pilot:
+    async with app.run_test(size=(100, 70)) as pilot:
         await pilot.click("#level-navigation_find_02")
         assert isinstance(app.screen, QuestScreen)
         scr = app.screen
@@ -144,7 +144,7 @@ async def test_shift_does_not_cancel_pending_find(tmp_path):
 async def test_shift_does_not_cancel_pending_g(tmp_path):
     store = ProgressStore(path=tmp_path / "save.json")
     app = NvimQuestApp(store=store)
-    async with app.run_test(size=(100, 40)) as pilot:
+    async with app.run_test(size=(100, 70)) as pilot:
         await pilot.click("#level-navigation_document_01")
         assert isinstance(app.screen, QuestScreen)
         scr = app.screen
@@ -166,7 +166,7 @@ async def test_search_gated_when_not_in_lesson(tmp_path):
 
     store = ProgressStore(path=tmp_path / "save.json")
     app = NvimQuestApp(store=store)
-    async with app.run_test(size=(100, 60)) as pilot:
+    async with app.run_test(size=(100, 70)) as pilot:
         await pilot.click("#level-navigation_word_02")
         assert isinstance(app.screen, QuestScreen)
         scr = app.screen
@@ -182,6 +182,27 @@ async def test_search_gated_when_not_in_lesson(tmp_path):
         await pilot.pause()
         assert scr.ev.stats.actions == 1
         assert scr.ev.stats.invalid == 0
+
+
+@pytest.mark.asyncio
+async def test_counts_level_via_ui(tmp_path):
+    """Long Strides: '7j' count prefix works through the real key path."""
+    store = ProgressStore(path=tmp_path / "save.json")
+    app = NvimQuestApp(store=store)
+    async with app.run_test(size=(100, 70)) as pilot:
+        await pilot.click("#level-navigation_counts_01")
+        assert isinstance(app.screen, QuestScreen)
+        scr = app.screen
+        await pilot.press("7", "j")
+        await pilot.pause()
+        assert scr.ev.editor.pos == (7, 0)
+        assert scr.ev.stats.visited == 1
+        await pilot.press("5", "k")
+        await pilot.press("7", "j")
+        await pilot.pause()
+        assert isinstance(app.screen, ResultsScreen)
+        saved = json.loads((tmp_path / "save.json").read_text())
+        assert saved["best_ranks"]["navigation_counts_01"] == "Mastery"
 
 
 @pytest.mark.asyncio
@@ -206,7 +227,7 @@ async def test_menu_refreshes_ranks_without_restart(tmp_path):
         btn = app.screen.query_one("#level-navigation_character_01", Button)
         assert "best: Mastery" in str(btn.label)
         progress = app.screen.query_one("#menu-progress", Static)
-        assert "1/14" in str(progress.content)
+        assert "1/20" in str(progress.content)
 
 
 @pytest.mark.asyncio
