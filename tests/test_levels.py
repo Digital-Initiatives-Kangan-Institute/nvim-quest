@@ -4,15 +4,13 @@ Also asserts reference action counts match the YAML so Gold thresholds
 stay honest, and that reference play earns Mastery.
 """
 
-from pathlib import Path
-
 import pytest
 
 from nvim_quest.quest.evaluator import Evaluator
-from nvim_quest.quest.loader import load_level
+from nvim_quest.quest.loader import content_dir, load_level
 from nvim_quest.quest.scoring import MASTERY, rank_attempt
 
-NAV = Path(__file__).parents[1] / "content" / "navigation"
+NAV = content_dir() / "navigation"
 
 # Reference solutions: plain keypresses (counts allowed but unused here,
 # mirroring beginner play).

@@ -25,11 +25,13 @@ def load_levels(directory: str | Path) -> list[Level]:
 
 
 def content_dir() -> Path:
-    """Default content root (repo ./content or package fallback)."""
+    """Content root, shipped inside the package.
+
+    Works for editable checkouts and regular installs alike, since the
+    YAML files are declared as package data.
+    """
     here = Path(__file__).resolve()
-    # src/nvim_quest/quest/loader.py -> repo root = parents[3]
-    root = here.parents[3]
-    candidate = root / "content"
+    candidate = here.parents[1] / "content"  # src/nvim_quest/content
     if candidate.is_dir():
         return candidate
-    raise FileNotFoundError("content directory not found")
+    raise FileNotFoundError("nvim_quest content directory not found")
