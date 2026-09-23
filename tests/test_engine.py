@@ -2,7 +2,10 @@
 
 from nvim_quest.quest.evaluator import Evaluator
 from nvim_quest.quest.models import Level, MasteryRule, Target
-from nvim_quest.quest.scoring import GOLD, MASTERY, BRONZE, SILVER, LOCKED, rank_attempt
+from nvim_quest.quest.scoring import (
+    GOLD, MASTERY, BRONZE, SILVER, LOCKED, rank_attempt,
+    describe_mastery, mastery_gaps,
+)
 from nvim_quest.simulation.search import SearchSession, find_matches
 from nvim_quest.simulation.state import VirtualEditor, _parse
 
@@ -104,3 +107,49 @@ def test_rank_silver_only():
 
     s = AttemptStats(actions=4, invalid=0, completed=True, families_used={"word"})
     assert rank_attempt(lvl, s) == SILVER
+
+
+def test_gold_without_mastery_names_missing_key():
+    # Archive Expedition shape: under the action limit but never used "0".
+    from nvim_quest.quest.evaluator import AttemptStats
+
+    lvl = make_level(
+        reference_actions=13,
+        mastery=MasteryRule(required_keys=["0", "^", "$", "gg", "G"]),
+    )
+    s = AttemptStats(
+        actions=11, invalid=0, completed=True,
+        families_used={"character", "line", "document"},
+        keys_used={"j", "k", "l", "^", "$", "gg", "G"},
+    )
+    assert rank_attempt(lvl, s) == GOLD
+    assert mastery_gaps(lvl, s) == ["never used 0"]
+
+
+def test_mastery_gaps_cover_all_gates():
+    from nvim_quest.quest.evaluator import AttemptStats
+
+    lvl = make_level(
+        reference_actions=5,
+        mastery=MasteryRule(required_keys=["w"], single_search=False),
+    )
+    s = AttemptStats(
+        actions=9, invalid=2, completed=True,
+        families_used={"word"}, keys_used={"b"}, hints_used=1,
+    )
+    gaps = mastery_gaps(lvl, s)
+    assert "2 invalid commands" in gaps
+    assert "9 actions (limit 5)" in gaps
+    assert "never used w" in gaps
+    assert "1 hint used" in gaps
+
+
+def test_describe_mastery():
+    lvl = make_level(
+        reference_actions=13,
+        mastery=MasteryRule(required_keys=["0", "^", "$", "gg", "G"]),
+    )
+    text = describe_mastery(lvl)
+    assert "use 0 ^ $ gg G" in text
+    assert "no hints" in text
+    assert "13 actions" in text

@@ -6,7 +6,7 @@ import time
 
 from textual import on
 from textual.app import App, ComposeResult
-from textual.containers import Vertical
+from textual.containers import Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Static
 
@@ -14,7 +14,7 @@ from ..progress.store import ProgressStore
 from ..quest.evaluator import AttemptStats
 from ..quest.loader import content_dir, load_levels
 from ..quest.models import Level
-from ..quest.scoring import RANK_ORDER
+from ..quest.scoring import RANK_ORDER, mastery_gaps
 from ..simulation.state import CommandResult
 from .quest_screen import QuestScreen
 
@@ -37,15 +37,18 @@ class MenuScreen(Screen):
         with Vertical(id="menu"):
             yield Static("[bold]NeoVim Quest[/bold]\n[dim]Learn real Neovim workflows by playing.[/dim]")
             yield Static(id="menu-progress")
-            yield Static("[bold]Lessons — Navigation[/bold]")
-            for lvl in self.levels:
-                yield Button(self._label(lvl), id=f"level-{lvl.id}")
-            yield Button("Quit", id="quit", variant="error")
+            yield Static("[bold]Lessons — Navigation[/bold]  [dim](j/k move, l opens)[/dim]")
+            with VerticalScroll(id="level-list"):
+                for lvl in self.levels:
+                    yield Button(self._label(lvl), id=f"level-{lvl.id}")
+                yield Button("Quit", id="quit", variant="error")
         yield Footer()
 
     def _label(self, lvl: Level) -> str:
         rank = self.store.progress.best_ranks.get(lvl.id, "—")
-        return f"{lvl.title}  [{lvl.lesson}]  best: {rank}"
+        # Note: square brackets are parsed as markup by Button labels,
+        # so the lesson goes in parentheses.
+        return f"{lvl.title}  ({lvl.lesson})  best: {rank}"
 
     def _refresh(self) -> None:
         for lvl in self.levels:
@@ -79,9 +82,15 @@ class MenuScreen(Screen):
             index = buttons.index(self.focused)
         except ValueError:
             index = 0 if direction > 0 else len(buttons) - 1
-            self.set_focus(buttons[index])
-            return
-        self.set_focus(buttons[(index + direction) % len(buttons)])
+        else:
+            index = (index + direction) % len(buttons)
+        target = buttons[index]
+        self.set_focus(target)
+        # Focusing alone does not scroll: bring the button into view.
+        # Unanimated so keyboard travel stays snappy (and testable).
+        self.query_one("#level-list", VerticalScroll).scroll_to_widget(
+            target, animate=False
+        )
 
     def _open_focused(self) -> None:
         focused = self.focused
@@ -96,17 +105,18 @@ class MenuScreen(Screen):
             self.app.push_screen(QuestScreen(level, self.store))
 
     async def on_key(self, event) -> None:
+        # Vim motions only: j/k move, l opens. (Enter also activates the
+        # focused button natively; q quits via binding.)
         key = event.key
-        if key in ("down", "j"):
+        if key == "j":
             self._move_focus(1)
             event.prevent_default()
-        elif key in ("up", "k"):
+        elif key == "k":
             self._move_focus(-1)
             event.prevent_default()
-        elif key in ("l", "right"):
+        elif key == "l":
             self._open_focused()
             event.prevent_default()
-        # "enter" activates the focused button natively; "q" quits via binding.
 
     @on(Button.Pressed)
     def _pressed(self, event: Button.Pressed) -> None:
@@ -143,13 +153,25 @@ class ResultsScreen(Screen):
     def on_mount(self) -> None:
         used = " ".join(r.command for r in self.history if not r.invalid)
         fams = ", ".join(sorted(self.stats.families_used)) or "—"
+        if self.rank == "Mastery":
+            verdict = "[green]Mastery achieved — flawless technique.[/green]"
+        else:
+            gaps = mastery_gaps(self.level, self.stats)
+            verdict = (
+                "[yellow]Next rank missed because: "
+                + "; ".join(gaps)
+                + "[/yellow]"
+                if gaps
+                else ""
+            )
         self.query_one("#results-body", Static).update(
             f"[bold]{self.level.title}[/bold] — [yellow]{self.rank} Rank[/yellow]\n\n"
             f"Time: {_fmt_time(self.elapsed)}\n"
             f"Actions: {self.stats.actions} (reference: {self.level.reference_actions})\n"
             f"Mistakes: {self.stats.invalid}\n"
             f"Hints used: {self.stats.hints_used}\n"
-            f"Motion families: {fams}\n\n"
+            f"Motion families: {fams}\n"
+            f"{verdict}\n\n"
             f"[dim]You used:[/dim] {used}"
         )
 
@@ -165,10 +187,16 @@ class NvimQuestApp(App):
     CSS = """
     #menu { padding: 1 2; }
     #menu Button { margin-top: 0; }
+    /* Full-width buttons: rank text ("—" → "Mastery") must never be
+       cropped by a width measured from older, shorter labels. */
+    #level-list Button { width: 1fr; }
+    #level-list { height: 1fr; }
     #quest-title { padding: 0 1; }
     #quest-objective { padding: 0 1; color: #9ecbff; }
+    #quest-allowed { padding: 0 1; }
+    #quest-mastery { padding: 0 1; }
     #quest-targets { padding: 0 1; }
-    #quest-buffer { padding: 1 2; border: solid #444; }
+    #quest-buffer-scroll { height: 1fr; border: solid #444; }
     #quest-status { padding: 0 1; }
     """
 

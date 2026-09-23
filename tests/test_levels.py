@@ -39,7 +39,7 @@ SOLUTIONS: dict[str, list[str]] = {
     "navigation_line_01": ["^", "$", "0", "$", "^"],
     "navigation_document_01": ["G", "gg"] + ["j"] * 12 + ["gg", "G"],
     "navigation_document_02": (
-        ["j", "j", "^", "j", "j", "$", "gg", "G", "k", "k", "l", "0", "^"]
+        ["j", "j", "^", "j", "j", "$", "gg", "G", "$", "2k", "0", "^"]
     ),
     "navigation_document_03": (
         ["4j", "^", "4j", "$", "gg", "G", "2k", "^", "k", "$"]

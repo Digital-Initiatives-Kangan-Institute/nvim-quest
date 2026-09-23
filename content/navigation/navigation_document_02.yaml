@@ -24,14 +24,14 @@ targets:
   - {row: 2, col: 2, label: "first non-blank of the indented line"}
   - {row: 4, col: 20, label: "end of 'Section One: arrivals'"}
   - {row: 0, col: 0, label: "top of the document"}
-  - {row: 10, col: 0, label: "bottom of the document"}
+  - {row: 10, col: 13, label: "end of the footer line"}
   - {row: 8, col: 0, label: "absolute beginning of the indented line"}
   - {row: 8, col: 2, label: "first non-blank of that same line"}
 allowed_commands: [h, j, k, l, "0", ^, $, gg, G]
 introduced: []
 hints:
   - "Reach the indented line, then press '^'."
-  - "After the footer, step up and use '0' before '^' to feel the difference."
-reference_actions: 13
+  - "From the footer's end, step up and press '0' — then '^' — to feel the difference."
+reference_actions: 12
 mastery:
   required_keys: ["0", ^, $, gg, G]

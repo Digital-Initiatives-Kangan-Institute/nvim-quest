@@ -8,7 +8,7 @@ import unicodedata
 from rich.text import Text
 from textual import on
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.keys import KEY_TO_UNICODE_NAME, REPLACED_KEYS
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, Static
@@ -16,10 +16,32 @@ from textual.widgets import Footer, Header, Input, Static
 from ..progress.store import ProgressStore
 from ..quest.evaluator import Evaluator
 from ..quest.models import Level
-from ..quest.scoring import rank_attempt
+from ..quest.scoring import describe_mastery, rank_attempt
 
 PENDING_FIND = {"f", "t"}
 IMMEDIATE = {"h", "j", "k", "l", "w", "b", "e", "0", "^", "$", "G", "n", "N"}
+
+
+def format_allowed_motions(level: Level, keys_used: set[str]) -> str:
+    """Render the allowed-motions line with usage coloring.
+
+    Used motions show green, newly introduced (but unused) ones yellow,
+    the rest plain — so the player sees what they have already tried.
+    """
+    new = {c for c in level.introduced if c in level.allowed_set}
+    parts = []
+    for cmd in level.allowed_commands:
+        if cmd in keys_used:
+            parts.append(f"[green]{cmd}[/green]")
+        elif cmd in new:
+            parts.append(f"[yellow]{cmd}[/yellow]")
+        else:
+            parts.append(cmd)
+    return (
+        "[bold]Allowed motions:[/bold] "
+        + " ".join(parts)
+        + "  [dim](green = used, yellow = new)[/dim]"
+    )
 
 try:
     # Authoritative bare-modifier key names (Kitty keyboard protocol
@@ -96,8 +118,12 @@ class QuestScreen(Screen):
         with Vertical():
             yield Static(id="quest-title")
             yield Static(id="quest-objective")
+            yield Static(id="quest-allowed")
+            yield Static(id="quest-mastery")
             yield Static(id="quest-targets")
-            yield Static(id="quest-buffer")
+            with VerticalScroll(id="quest-buffer-scroll"):
+                for r in range(len(self.level.start_text)):
+                    yield Static(id=f"quest-line-{r}")
             yield Static(id="quest-status")
             yield Input(placeholder="type search term, Enter to search, Esc to cancel",
                         id="search-input")
@@ -119,6 +145,11 @@ class QuestScreen(Screen):
         self.query_one("#quest-objective", Static).update(
             f"[bold]Objective:[/bold] {lvl.objective}"
         )
+        allowed = format_allowed_motions(lvl, self.ev.stats.keys_used)
+        self.query_one("#quest-allowed", Static).update(allowed)
+        self.query_one("#quest-mastery", Static).update(
+            f"[dim]{describe_mastery(lvl)}[/dim]"
+        )
         lines = []
         for i, t in enumerate(lvl.targets):
             if i < self.ev.current_target_index:
@@ -128,7 +159,16 @@ class QuestScreen(Screen):
             else:
                 lines.append(f"  [dim]· {t.label}[/dim]")
         self.query_one("#quest-targets", Static).update("\n".join(lines))
-        self.query_one("#quest-buffer", Static).update(self._render_buffer())
+        nlines = len(self.ev.editor.buf.lines)
+        for r in range(nlines):
+            self.query_one(f"#quest-line-{r}", Static).update(self._render_line(r))
+        # Keep the cursor line visible in large documents.
+        cursor_widget = self.query_one(
+            f"#quest-line-{self.ev.editor.pos[0]}", Static
+        )
+        self.query_one("#quest-buffer-scroll", VerticalScroll).scroll_to_widget(
+            cursor_widget, animate=False
+        )
         pos = self.ev.editor.pos
         self.query_one("#quest-status", Static).update(
             f"Cursor: line {pos[0] + 1}, col {pos[1] + 1}   "
@@ -138,8 +178,9 @@ class QuestScreen(Screen):
             f"[dim]{self.message}[/dim]"
         )
 
-    def _render_buffer(self) -> Text:
+    def _render_line(self, r: int) -> Text:
         out = Text()
+        line = self.ev.editor.buf.lines[r]
         cursor = self.ev.editor.pos
         cur_target = (
             self.level.targets[self.ev.current_target_index]
@@ -147,19 +188,16 @@ class QuestScreen(Screen):
             else None
         )
         matches = set(self.ev.editor.search.matches)
-        for r, line in enumerate(self.ev.editor.buf.lines):
-            shown = line if line else " "
-            for c, ch in enumerate(shown):
-                style = ""
-                if (r, c) == cursor:
-                    style = "reverse bold"
-                elif cur_target is not None and (r, c) == cur_target.pos:
-                    style = "bold yellow underline"
-                elif (r, c) in matches:
-                    style = "on dark_green"
-                out.append(ch if line else "·", style=style or None)
-            if r < len(self.ev.editor.buf.lines) - 1:
-                out.append("\n")
+        shown = line if line else " "
+        for c, ch in enumerate(shown):
+            style = ""
+            if (r, c) == cursor:
+                style = "reverse bold"
+            elif cur_target is not None and (r, c) == cur_target.pos:
+                style = "bold yellow underline"
+            elif (r, c) in matches:
+                style = "on dark_green"
+            out.append(ch if line else "·", style=style or None)
         return out
 
     # -- input state machine --------------------------------------------
