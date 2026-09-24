@@ -19,7 +19,9 @@ from ..quest.models import Level
 from ..quest.scoring import describe_mastery, rank_attempt
 
 PENDING_FIND = {"f", "t"}
-IMMEDIATE = {"h", "j", "k", "l", "w", "b", "e", "0", "^", "$", "G", "n", "N"}
+OPERATORS = {"d", "c", "y"}
+IMMEDIATE = {"h", "j", "k", "l", "w", "b", "e", "0", "^", "$", "G", "n", "N",
+             "x", "p", "."}
 
 
 def format_allowed_motions(level: Level, keys_used: set[str]) -> str:
@@ -107,6 +109,8 @@ class QuestScreen(Screen):
         self.ev = Evaluator(level)
         self.start_time = time.monotonic()
         self.count_buf = ""
+        self.op_prefix = ""  # operator + its count, e.g. "d", "2d"
+        self.motion_count = ""  # count typed after an operator, e.g. "d2"
         self.pending_g = False
         self.pending_find = ""
         self.message = "Move with the lesson's motions. '/' search, '?' hint."
@@ -127,17 +131,20 @@ class QuestScreen(Screen):
             yield Static(id="quest-status")
             yield Input(placeholder="type search term, Enter to search, Esc to cancel",
                         id="search-input")
+            yield Input(placeholder="INSERT — type replacement, Enter/Esc to commit",
+                        id="insert-input")
         yield Footer()
 
-    def on_mount(self) -> None:
-        search_input = self.query_one("#search-input", Input)
-        search_input.display = False
-        search_input.disabled = True
-        self.refresh_all()
+    async def on_mount(self) -> None:
+        for widget_id in ("#search-input", "#insert-input"):
+            inp = self.query_one(widget_id, Input)
+            inp.display = False
+            inp.disabled = True
+        await self.refresh_all()
 
     # -- rendering ------------------------------------------------------
 
-    def refresh_all(self) -> None:
+    async def refresh_all(self) -> None:
         lvl = self.level
         self.query_one("#quest-title", Static).update(
             f"[bold]{lvl.title}[/bold]  [dim]({lvl.lesson} · {lvl.id})[/dim]"
@@ -159,16 +166,25 @@ class QuestScreen(Screen):
             else:
                 lines.append(f"  [dim]· {t.label}[/dim]")
         self.query_one("#quest-targets", Static).update("\n".join(lines))
-        nlines = len(self.ev.editor.buf.lines)
-        for r in range(nlines):
-            self.query_one(f"#quest-line-{r}", Static).update(self._render_line(r))
+        # The buffer can gain or lose lines through edits: mount missing
+        # row widgets, hide surplus ones, then update the visible rows.
+        scroll = self.query_one("#quest-buffer-scroll", VerticalScroll)
+        widgets = list(scroll.query(Static))
+        need = len(self.ev.editor.buf.lines)
+        for r in range(len(widgets), need):
+            await scroll.mount(Static(id=f"quest-line-{r}"))
+            widgets.append(scroll.query_one(f"#quest-line-{r}", Static))
+        for r, widget in enumerate(widgets):
+            if r < need:
+                widget.display = True
+                widget.update(self._render_line(r))
+            else:
+                widget.display = False
         # Keep the cursor line visible in large documents.
         cursor_widget = self.query_one(
             f"#quest-line-{self.ev.editor.pos[0]}", Static
         )
-        self.query_one("#quest-buffer-scroll", VerticalScroll).scroll_to_widget(
-            cursor_widget, animate=False
-        )
+        scroll.scroll_to_widget(cursor_widget, animate=False)
         pos = self.ev.editor.pos
         self.query_one("#quest-status", Static).update(
             f"Cursor: line {pos[0] + 1}, col {pos[1] + 1}   "
@@ -188,9 +204,12 @@ class QuestScreen(Screen):
             else None
         )
         matches = set(self.ev.editor.search.matches)
+        start = self.level.start_text
+        changed = r >= len(start) or line != start[r]
+        base = "on dark_blue" if changed else ""
         shown = line if line else " "
         for c, ch in enumerate(shown):
-            style = ""
+            style = base
             if (r, c) == cursor:
                 style = "reverse bold"
             elif cur_target is not None and (r, c) == cur_target.pos:
@@ -202,70 +221,123 @@ class QuestScreen(Screen):
 
     # -- input state machine --------------------------------------------
 
+    def _clear_pending(self) -> None:
+        self.count_buf = ""
+        self.op_prefix = ""
+        self.motion_count = ""
+        self.pending_g = False
+        self.pending_find = ""
+
+    def _hide_input(self, widget_id: str) -> Input:
+        inp = self.query_one(widget_id, Input)
+        inp.display = False
+        inp.disabled = True
+        inp.value = ""
+        return inp
+
     async def on_key(self, event) -> None:
         if self.finished:
             return
         if event.key in MODIFIER_KEYS:
             # Bare modifier press (e.g. Shift held for 'f('). Never part of
-            # a command — ignore it without disturbing pending f/t/g/count.
+            # a command — ignore it without disturbing pending state.
             event.prevent_default()
             return
         search_input = self.query_one("#search-input", Input)
-        if search_input.display and not search_input.disabled:
+        insert_input = self.query_one("#insert-input", Input)
+        if insert_input.display and not insert_input.disabled:
             if event.key == "escape":
-                search_input.display = False
-                search_input.disabled = True
-                search_input.value = ""
-                self.set_focus(None)
-                self.message = "Search cancelled."
-                self.refresh_all()
+                # Vim keeps typed text on Esc: commit whatever is there.
+                await self._commit_insert_text(insert_input.value)
                 event.prevent_default()
             return  # Input widget handles its own keys
+        if search_input.display and not search_input.disabled:
+            if event.key == "escape":
+                self._hide_input("#search-input")
+                self.set_focus(None)
+                self.message = "Search cancelled."
+                await self.refresh_all()
+                event.prevent_default()
+            return  # Input widget handles its own keys
+        if event.key == "escape":
+            if self._has_pending():
+                self._clear_pending()
+                self.message = "Cancelled."
+                await self.refresh_all()
+                event.prevent_default()
+            return  # no global Esc binding; let it pass otherwise
 
         key = event.key
         char = key_to_char(key)
-        # '0' alone is a motion; a leading digit starts a count.
+        # Digits: counts — except a bare "0" with no pending state, which
+        # is the line-start motion (or an operator's motion: d0).
         if char.isdigit() and not self.pending_find and not self.pending_g:
-            if char == "0" and not self.count_buf:
-                self._run("0")
+            if char == "0" and not self._has_count_state():
+                if self.op_prefix:
+                    await self._complete_op("0")
+                else:
+                    await self._run("0")
+            elif self.op_prefix:
+                self.motion_count += char
+                self.message = f"({self.op_prefix}{self.motion_count}…)"
+                await self.refresh_all()
             else:
                 self.count_buf += char
                 self.message = f"Count: {self.count_buf}"
-                self.refresh_all()
+                await self.refresh_all()
             event.prevent_default()
             return
 
         if self.pending_find:
             if char:
-                self._run(f"{self.count_buf}{self.pending_find}{char}")
+                await self._complete_op(f"{self.pending_find}{char}")
             else:
                 self.message = "Find cancelled."
-                self.refresh_all()
-            self.pending_find = ""
-            self.count_buf = ""
+                self._clear_pending()
+                await self.refresh_all()
             event.prevent_default()
             return
 
         if self.pending_g:
-            self.pending_g = False
             if char == "g":
-                self._run("gg")
+                await self._complete_op("gg")
             else:
                 self.message = "'g' alone does nothing — press 'gg'."
-                self.count_buf = ""
-                self.refresh_all()
+                self._clear_pending()
+                await self.refresh_all()
             event.prevent_default()
             return
 
         if char == "g":
             self.pending_g = True
-            self.message = "Pressed 'g' — press 'g' again for 'gg'."
-            self.refresh_all()
-        elif char in PENDING_FIND and char in self.level.allowed_set:
-            self.pending_find = char
-            self.message = f"Pressed '{char}' — type the target character."
-            self.refresh_all()
+            if self.op_prefix:
+                self.message = f"({self.op_prefix}g… — press 'g' again."
+            else:
+                self.message = "Pressed 'g' — press 'g' again for 'gg'."
+            await self.refresh_all()
+        elif char in OPERATORS:
+            if not self.op_prefix and char in self.level.allowed_set:
+                self.op_prefix = f"{self.count_buf}{char}"
+                self.count_buf = ""
+                self.message = (
+                    f"Operator '{self.op_prefix}' — motion? "
+                    f"('{self.op_prefix}{self.op_prefix[-1]}' works on lines. "
+                    "Esc cancels.)"
+                )
+                await self.refresh_all()
+            else:
+                # Second key of dd/yy-style, or disallowed: run as one action.
+                await self._complete_op(char)
+        elif char in PENDING_FIND:
+            if self.op_prefix or char in self.level.allowed_set:
+                self.pending_find = char
+                self.message = f"Pressed '{char}' — type the target character."
+                await self.refresh_all()
+            else:
+                await self._run(f"{self.count_buf}{char}")
+                self.count_buf = ""
         elif char == "/":
+            self._clear_pending()
             if char not in self.level.allowed_set:
                 # Search would trivialize non-search lessons: refuse it
                 # up front instead of opening a prompt that can only fail.
@@ -273,57 +345,111 @@ class QuestScreen(Screen):
                     "Search isn't part of this lesson — "
                     "use the lesson's motions instead."
                 )
-                self.count_buf = ""
-                self.refresh_all()
+                await self.refresh_all()
             else:
                 search_input.display = True
                 search_input.disabled = False
                 search_input.value = ""
                 search_input.focus()
                 self.message = "Type a search term and press Enter."
-                self.refresh_all()
+                await self.refresh_all()
         elif char == "?":
-            self._hint()
-        elif char and (char in IMMEDIATE or char in ("f", "t")):
-            self._run(f"{self.count_buf}{char}")
-            self.count_buf = ""
+            self._clear_pending()
+            await self._hint()
+        elif char and char in IMMEDIATE:
+            if self.op_prefix:
+                await self._complete_op(char)
+            else:
+                await self._run(f"{self.count_buf}{char}")
+                self.count_buf = ""
         else:
-            self.count_buf = ""
+            self._clear_pending()
             return  # let bindings (ctrl+q etc.) work
         event.prevent_default()
 
+    def _has_pending(self) -> bool:
+        return bool(
+            self.count_buf
+            or self.op_prefix
+            or self.motion_count
+            or self.pending_g
+            or self.pending_find
+        )
+
+    def _has_count_state(self) -> bool:
+        return bool(self.count_buf or self.op_prefix or self.motion_count)
+
+    async def _complete_op(self, motion: str) -> None:
+        """Run op_prefix + motion_count + motion as a single action."""
+        await self._run(f"{self.op_prefix}{self.motion_count}{motion}")
+        self._clear_pending()
+
     @on(Input.Submitted, "#search-input")
-    def _search_submitted(self, event: Input.Submitted) -> None:
+    async def _search_submitted(self, event: Input.Submitted) -> None:
         term = event.value
-        search_input = self.query_one("#search-input", Input)
-        search_input.display = False
-        search_input.disabled = True
-        search_input.value = ""
+        self._hide_input("#search-input")
         self.set_focus(None)
         if term:
-            self._run(f"/{term}")
+            await self._run(f"/{term}")
         else:
             self.message = "Empty search — nothing happened."
-            self.refresh_all()
+            await self.refresh_all()
 
-    def _run(self, command: str) -> None:
+    @on(Input.Submitted, "#insert-input")
+    async def _insert_submitted(self, event: Input.Submitted) -> None:
+        await self._commit_insert_text(event.value)
+
+    async def _commit_insert_text(self, text: str) -> None:
+        """Commit pending insert text (Enter or Esc both keep it, vim-like)."""
+        self._hide_input("#insert-input")
+        self.set_focus(None)
+        if not self.ev.editor.commit_insert(text):
+            self.message = "Nothing to commit."
+            await self.refresh_all()
+            return
+        hit, done = self.ev.check_progress()
+        self._report(hit, done, "Text committed.")
+        await self.refresh_all()
+        if done:
+            self._finish()
+
+    async def _run(self, command: str) -> None:
         hit, done = self.ev.submit(command)
         last = self.ev.editor.history[-1]
         if last.invalid:
             self.message = f"'{command}' had no effect (invalid here)."
-        elif hit:
-            if done:
-                self.message = "All targets reached!"
-            else:
-                nxt = self.level.targets[self.ev.current_target_index].label
-                self.message = f"Target reached — next: {nxt}"
         else:
-            self.message = f"Moved to line {last.pos[0] + 1}, col {last.pos[1] + 1}."
-        self.refresh_all()
+            self._report(
+                hit, done,
+                f"At line {last.pos[0] + 1}, col {last.pos[1] + 1}.",
+            )
+        if last.enter_insert and not done:
+            self._show_insert()
+        await self.refresh_all()
         if done:
             self._finish()
 
-    def _hint(self) -> None:
+    def _report(self, hit: bool, done: bool, idle: str) -> None:
+        if done:
+            self.message = "Quest complete!"
+        elif hit:
+            if self.ev.current_target_index < len(self.level.targets):
+                nxt = self.level.targets[self.ev.current_target_index].label
+                self.message = f"Target reached — next: {nxt}"
+            else:
+                self.message = "Text goal reached — nicely edited!"
+        else:
+            self.message = idle
+
+    def _show_insert(self) -> None:
+        insert_input = self.query_one("#insert-input", Input)
+        insert_input.display = True
+        insert_input.disabled = False
+        insert_input.value = ""
+        insert_input.focus()
+        self.message = "INSERT — type replacement, Enter/Esc to commit."
+
+    async def _hint(self) -> None:
         hints = self.level.hints
         if not hints:
             self.message = "No hints for this level."
@@ -332,7 +458,7 @@ class QuestScreen(Screen):
             self.hint_index = min(self.hint_index, len(hints) - 1)
             self.message = f"Hint: {hints[self.hint_index]}"
             self.hint_index = min(self.hint_index + 1, len(hints) - 1)
-        self.refresh_all()
+        await self.refresh_all()
 
     def _finish(self) -> None:
         self.finished = True
@@ -344,7 +470,8 @@ class QuestScreen(Screen):
 
         self.app.push_screen(
             ResultsScreen(self.level, self.ev.stats, rank, elapsed,
-                          self.ev.editor.history)
+                          self.ev.editor.history,
+                          end_lines=list(self.ev.editor.buf.lines))
         )
 
     def action_quit_level(self) -> None:

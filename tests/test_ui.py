@@ -303,6 +303,120 @@ async def test_buffer_scroll_follows_cursor(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_insert_flow_completes_text_goal(tmp_path):
+    """cw → INSERT input → type → Enter commits and finishes the level."""
+    from textual.widgets import Input
+
+    from nvim_quest.quest.models import Level
+
+    lvl = Level(
+        id="edit_probe", title="Probe", lesson="Change",
+        start_text=["map rope"], start_cursor=(0, 0),
+        targets=[], end_text=["new rope"],
+        allowed_commands=["c", "w", "h", "l"],
+        reference_actions=1,
+    )
+    store = ProgressStore(path=tmp_path / "save.json")
+    app = NvimQuestApp(store=store)
+    async with app.run_test(size=(100, 70)) as pilot:
+        app.push_screen(QuestScreen(lvl, store))
+        await pilot.pause()
+        assert isinstance(app.screen, QuestScreen)
+        scr = app.screen
+        await pilot.press("c")
+        await pilot.pause()
+        assert scr.op_prefix == "c"
+        assert scr.ev.stats.actions == 0
+        await pilot.press("w")
+        await pilot.pause()
+        assert scr.ev.editor.buf.lines == [" rope"]
+        insert = scr.query_one("#insert-input", Input)
+        assert insert.display and not insert.disabled
+        await pilot.press(*list("new"))
+        await pilot.press("enter")
+        await pilot.pause()
+        assert isinstance(app.screen, ResultsScreen)
+        body = str(app.screen.query_one("#results-body", Static).content)
+        assert "Mastery Rank" in body
+        diff = str(app.screen.query_one("#results-diff", Static).content)
+        assert "- map rope" in diff and "+ new rope" in diff
+        saved = json.loads((tmp_path / "save.json").read_text())
+        assert saved["best_ranks"]["edit_probe"] == "Mastery"
+
+
+@pytest.mark.asyncio
+async def test_operator_escape_cancels_without_action(tmp_path):
+    """'c' then Escape: no action recorded, following 'w' is a plain motion."""
+    from nvim_quest.quest.models import Level
+
+    lvl = Level(
+        id="edit_probe", title="Probe", lesson="Change",
+        start_text=["map rope"], start_cursor=(0, 0),
+        targets=[], end_text=["new rope"],
+        allowed_commands=["c", "w", "h", "l"],
+        reference_actions=1,
+    )
+    store = ProgressStore(path=tmp_path / "save.json")
+    app = NvimQuestApp(store=store)
+    async with app.run_test(size=(100, 70)) as pilot:
+        app.push_screen(QuestScreen(lvl, store))
+        await pilot.pause()
+        scr = app.screen
+        await pilot.press("c")
+        await pilot.pause()
+        assert scr.op_prefix == "c"
+        await pilot.press("escape")
+        await pilot.pause()
+        assert scr.op_prefix == ""
+        assert scr.ev.stats.actions == 0
+        await pilot.press("w")
+        await pilot.pause()
+        assert scr.ev.editor.buf.lines == ["map rope"]
+        assert scr.ev.editor.pos == (0, 4)
+        assert scr.ev.stats.actions == 1
+        assert scr.ev.stats.invalid == 0
+
+
+@pytest.mark.asyncio
+async def test_menu_groups_levels_by_region(tmp_path):
+    """Menu renders one section per region; j/k travel across sections."""
+    from textual.widgets import Button
+
+    from nvim_quest.quest.models import Level
+    from nvim_quest.ui.app import MenuScreen
+
+    nav = Level(id="n1", title="Nav One", lesson="L", region="Navigation")
+    edt = Level(id="e1", title="Edit One", lesson="M", region="Editing")
+    store = ProgressStore(path=tmp_path / "save.json")
+    app = NvimQuestApp(store=store)
+    async with app.run_test() as pilot:
+        app.push_screen(MenuScreen(store, [("Navigation", [nav]),
+                                           ("Editing", [edt])]))
+        await pilot.pause()
+        menu = app.screen
+        assert isinstance(menu, MenuScreen)
+        heads = [str(s.content) for s in menu.query(".region-head")]
+        assert len(heads) == 2
+        assert "Navigation" in heads[0] and "Editing" in heads[1]
+        assert "Navigation: 0/1  ·  Editing: 0/1" in str(
+            menu.query_one("#menu-progress", Static).content)
+        buttons = list(menu.query(Button))
+        assert [b.id for b in buttons] == ["level-n1", "level-e1", "quit"]
+        await pilot.press("j")
+        assert app.focused is buttons[1]  # crossed into Editing section
+        await pilot.press("j")
+        assert app.focused is buttons[2]
+
+
+def test_load_regions(tmp_path):
+    from nvim_quest.quest.loader import content_dir, load_regions
+
+    regions = load_regions(content_dir())
+    assert [name for name, _ in regions] == ["Navigation"]
+    assert len(regions[0][1]) == 20
+
+
+@pytest.mark.asyncio
 async def test_menu_refreshes_ranks_without_restart(tmp_path):
     """Menu shows the new rank immediately after returning from a level."""
     from textual.widgets import Button

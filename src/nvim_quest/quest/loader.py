@@ -24,6 +24,26 @@ def load_levels(directory: str | Path) -> list[Level]:
     return levels
 
 
+def load_regions(
+    directory: str | Path | None = None,
+) -> list[tuple[str, list[Level]]]:
+    """Load every content region: [(region name, levels)].
+
+    Each subdirectory of the content root is one region (navigation,
+    editing, ...). Empty or missing regions are skipped, so the menu only
+    ever shows regions that actually have levels.
+    """
+    root = Path(directory) if directory else content_dir()
+    regions: list[tuple[str, list[Level]]] = []
+    for sub in sorted(Path(root).iterdir()):
+        if not sub.is_dir():
+            continue
+        levels = load_levels(sub)
+        if levels:
+            regions.append((levels[0].region or sub.name.title(), levels))
+    return regions
+
+
 def content_dir() -> Path:
     """Content root, shipped inside the package.
 

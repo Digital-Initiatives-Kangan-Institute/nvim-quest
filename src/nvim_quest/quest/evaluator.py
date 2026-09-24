@@ -59,6 +59,15 @@ class Evaluator:
         if res.key == "/":
             self.stats.search_count = self.editor.search.search_count
 
+        return self.check_progress()
+
+    def check_progress(self) -> tuple[bool, bool]:
+        """Re-check targets and text goal against the current state.
+
+        Used by submit() and after out-of-band changes (insert commits),
+        which advance progress without recording a new action.
+        Returns (target_hit, level_complete).
+        """
         hit = False
         if self._next_target < len(self.level.targets):
             target = self.level.targets[self._next_target]
