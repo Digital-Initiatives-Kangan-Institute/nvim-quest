@@ -55,3 +55,71 @@ class Buffer:
         if 0 <= col < len(line):
             return line[col]
         return ""
+
+    # -- mutation (all in-place; callers re-sync search state) ---------------
+
+    def delete_char(self, count: int = 1) -> str:
+        """Delete `count` chars under the cursor. Returns removed text."""
+        line = self.lines[self.row]
+        if not line:
+            return ""
+        end = min(len(line), self.col + count)
+        removed = line[self.col : end]
+        self.lines[self.row] = line[: self.col] + line[end:]
+        self.clamp()
+        return removed
+
+    def delete_span(
+        self, start: tuple[int, int], end: tuple[int, int]
+    ) -> str:
+        """Delete charwise range [start, end), possibly across lines
+        (lines are joined, vim-like). Cursor lands on `start`."""
+        (r1, c1), (r2, c2) = start, end
+        if (r1, c1) == (r2, c2):
+            return ""
+        if r1 == r2:
+            line = self.lines[r1]
+            removed = line[c1:c2]
+            self.lines[r1] = line[:c1] + line[c2:]
+        else:
+            removed = self.lines[r1][c1:]
+            for r in range(r1 + 1, r2):
+                removed += "\n" + self.lines[r]
+            removed += "\n" + self.lines[r2][:c2]
+            self.lines[r1] = self.lines[r1][:c1] + self.lines[r2][c2:]
+            del self.lines[r1 + 1 : r2 + 1]
+        self.set_pos(r1, c1)
+        return removed
+
+    def delete_lines(self, row: int, count: int = 1) -> list[str]:
+        """Delete `count` whole lines from `row`. Never removes the final
+        line (leaves one empty line). Cursor goes to the first non-blank
+        of the line now at that position."""
+        count = max(1, min(count, len(self.lines) - row))
+        removed = self.lines[row : row + count]
+        del self.lines[row : row + count]
+        if not self.lines:
+            self.lines = [""]
+        row = min(row, len(self.lines) - 1)
+        line = self.lines[row]
+        indent = len(line) - len(line.lstrip())
+        self.set_pos(row, indent if indent < len(line) else 0)
+        return removed
+
+    def insert_text(self, row: int, col: int, text: str) -> tuple[int, int]:
+        """Insert text (possibly multi-line) at (row, col).
+        Returns the new cursor position (end of inserted text)."""
+        before = self.lines[row][:col]
+        after = self.lines[row][col:]
+        parts = text.split("\n")
+        if len(parts) == 1:
+            self.lines[row] = before + text + after
+            new = (row, col + len(text))
+        else:
+            self.lines[row] = before + parts[0]
+            for i, part in enumerate(parts[1:-1], start=1):
+                self.lines.insert(row + i, part)
+            self.lines.insert(row + len(parts) - 1, parts[-1] + after)
+            new = (row + len(parts) - 1, len(parts[-1]))
+        self.set_pos(*new)
+        return new

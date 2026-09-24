@@ -37,6 +37,7 @@ class Level:
     start_text: list[str] = field(default_factory=list)
     start_cursor: tuple[int, int] = (0, 0)
     targets: list[Target] = field(default_factory=list)
+    end_text: list[str] = field(default_factory=list)  # text goal (editing)
     allowed_commands: list[str] = field(default_factory=list)
     introduced: list[str] = field(default_factory=list)
     hints: list[str] = field(default_factory=list)
@@ -73,6 +74,7 @@ def level_from_dict(data: dict) -> Level:
         start_text=list(data.get("start_text", [])),
         start_cursor=(int(sc[0]), int(sc[1])),
         targets=targets,
+        end_text=list(data.get("end_text", [])),
         allowed_commands=list(data.get("allowed_commands", [])),
         introduced=list(data.get("introduced", [])),
         hints=list(data.get("hints", [])),

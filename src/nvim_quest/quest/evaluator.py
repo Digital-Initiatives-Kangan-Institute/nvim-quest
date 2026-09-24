@@ -66,8 +66,19 @@ class Evaluator:
                 hit = True
                 self._next_target += 1
                 self.stats.visited = self._next_target
-        if self._next_target >= len(self.level.targets):
-            self.stats.completed = True
+        chain_done = self._next_target >= len(self.level.targets)
+        text_done = True
+        if self.level.end_text:
+            text_done = list(self.editor.buf.lines) == list(
+                self.level.end_text
+            )
+        has_goal = bool(self.level.targets) or bool(self.level.end_text)
+        was_done = self.stats.completed
+        if not self.level.targets:
+            chain_done = True
+        self.stats.completed = has_goal and chain_done and text_done
+        if self.stats.completed and not was_done:
+            hit = True
         return (hit, self.stats.completed)
 
     def use_hint(self) -> None:
