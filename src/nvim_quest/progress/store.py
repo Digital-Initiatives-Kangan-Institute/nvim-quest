@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -45,8 +44,8 @@ class Progress:
 
 
 def default_save_path() -> Path:
-    base = os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local" / "share"))
-    return Path(base) / "nvim-quest" / "save.json"
+    # Keep the save next to where the game is run from.
+    return Path.cwd() / "nvim-quest-save.json"
 
 
 class ProgressStore:

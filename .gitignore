@@ -9,3 +9,6 @@ dist/
 *.egg
 .venv/
 venv/
+
+# Local game progress (saved next to where the game runs)
+nvim-quest-save.json

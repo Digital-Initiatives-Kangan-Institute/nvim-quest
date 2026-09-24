@@ -61,5 +61,4 @@ tests/          unit, level-solution, and headless UI tests
 pytest            # full test suite (71 tests)
 ```
 
-Progress is saved to `~/.local/share/nvim-quest/save.json`
-(`$XDG_DATA_HOME` respected when set).
+Progress is saved to `nvim-quest-save.json` in the directory you run the game from.
