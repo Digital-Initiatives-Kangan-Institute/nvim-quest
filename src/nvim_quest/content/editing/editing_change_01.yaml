@@ -1,0 +1,23 @@
+id: editing_change_01
+order: 24
+title: New Wording
+lesson: Change
+region: Editing
+narrative: >
+  The sign painter misspelt the crossing. Change the wrong word in one
+  motion: cw clears it and drops you into INSERT to type the fix.
+objective: Change 'old' into 'new' with cw.
+start_text:
+  - "the old bridge"
+start_cursor: [0, 0]
+targets: []
+end_text:
+  - "the new bridge"
+allowed_commands: [h, l, w, b, e, c]
+introduced: [c]
+hints:
+  - "Hop to 'old' with 'w', then 'cw' clears it and opens INSERT."
+  - "Type the replacement and press Enter — delete plus typing is one action."
+reference_actions: 2
+mastery:
+  required_keys: [c]

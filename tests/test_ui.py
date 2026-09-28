@@ -34,7 +34,7 @@ async def test_play_level_one_end_to_end(tmp_path):
     store = ProgressStore(path=tmp_path / "save.json")
     app = NvimQuestApp(store=store)
     async with app.run_test() as pilot:
-        assert len(app.levels) == 20
+        assert len(app.levels) == 34
         await pilot.click("#level-navigation_character_01")
         assert isinstance(app.screen, QuestScreen)
         for _ in range(6):
@@ -412,8 +412,129 @@ def test_load_regions(tmp_path):
     from nvim_quest.quest.loader import content_dir, load_regions
 
     regions = load_regions(content_dir())
-    assert [name for name, _ in regions] == ["Navigation"]
+    assert [name for name, _ in regions] == ["Navigation", "Editing"]
     assert len(regions[0][1]) == 20
+    assert len(regions[1][1]) == 14
+
+
+@pytest.mark.asyncio
+async def test_editing_level_playthrough(tmp_path):
+    """First Cut via the menu: x-cuts complete a text goal end to end."""
+    store = ProgressStore(path=tmp_path / "save.json")
+    app = NvimQuestApp(store=store)
+    async with app.run_test(size=(100, 110)) as pilot:
+        await pilot.click("#level-editing_delete_01")
+        assert isinstance(app.screen, QuestScreen)
+        scr = app.screen
+        assert scr.level.region == "Editing"
+        for _ in range(6):
+            await pilot.press("l")
+        await pilot.press("x")
+        for _ in range(10):
+            await pilot.press("l")
+        await pilot.press("x")
+        assert isinstance(app.screen, ResultsScreen)
+        body = str(app.screen.query_one("#results-body", Static).content)
+        assert "Mastery Rank" in body
+        diff = str(app.screen.query_one("#results-diff", Static).content)
+        assert "the example code" in diff
+        saved = json.loads((tmp_path / "save.json").read_text())
+        assert saved["best_ranks"]["editing_delete_01"] == "Mastery"
+
+
+@pytest.mark.asyncio
+async def test_ciw_flow_completes_inner_remedy(tmp_path):
+    """Inner Remedy: c,i,w composes ciw (used to swallow the 'i')."""
+    store = ProgressStore(path=tmp_path / "save.json")
+    app = NvimQuestApp(store=store)
+    async with app.run_test(size=(100, 110)) as pilot:
+        await pilot.click("#level-editing_change_02")
+        assert isinstance(app.screen, QuestScreen)
+        scr = app.screen
+        for k in ["c", "i", "w"]:
+            await pilot.press(k)
+        await pilot.pause()
+        assert scr.ev.editor.buf.lines == ["fix  issuem"]
+        await pilot.press(*list("the"))
+        await pilot.press("enter")
+        await pilot.pause()
+        for k in ["w", "c", "i", "w"]:
+            await pilot.press(k)
+        await pilot.pause()
+        assert scr.ev.editor.buf.lines == ["fix the "]
+        await pilot.press(*list("issue"))
+        await pilot.press("enter")
+        await pilot.pause()
+        assert isinstance(app.screen, ResultsScreen)
+        saved = json.loads((tmp_path / "save.json").read_text())
+        assert saved["best_ranks"]["editing_change_02"] == "Mastery"
+
+
+@pytest.mark.asyncio
+async def test_disallowed_insert_key_is_invalid(tmp_path):
+    """Bare 'i' where insert isn't allowed records one invalid action."""
+    store = ProgressStore(path=tmp_path / "save.json")
+    app = NvimQuestApp(store=store)
+    async with app.run_test(size=(100, 110)) as pilot:
+        await pilot.click("#level-editing_change_02")
+        scr = app.screen
+        await pilot.press("i")
+        await pilot.pause()
+        assert scr.ev.stats.actions == 1
+        assert scr.ev.stats.invalid == 1
+        assert scr.ev.editor.in_live_insert is False
+
+
+@pytest.mark.asyncio
+async def test_replace_flow_completes_swap_letter(tmp_path):
+    """Swap Letter via menu: r,i / r,o compose through pending_r."""
+    store = ProgressStore(path=tmp_path / "save.json")
+    app = NvimQuestApp(store=store)
+    async with app.run_test(size=(100, 120)) as pilot:
+        await pilot.click("#level-editing_change_04")
+        assert isinstance(app.screen, QuestScreen)
+        scr = app.screen
+        for k in ["w", "l", "l", "r", "i", "w", "w", "l", "r", "o"]:
+            await pilot.press(k)
+        await pilot.pause()
+        assert scr.ev.editor.buf.lines == ["the quick brown fox"]
+        assert isinstance(app.screen, ResultsScreen)
+        saved = json.loads((tmp_path / "save.json").read_text())
+        assert saved["best_ranks"]["editing_change_04"] == "Mastery"
+
+
+@pytest.mark.asyncio
+async def test_live_insert_both_directions(tmp_path):
+    """Open Both Ways: O above, o below, Esc leaves insert each time."""
+    from textual.widgets import Input
+
+    store = ProgressStore(path=tmp_path / "save.json")
+    app = NvimQuestApp(store=store)
+    async with app.run_test(size=(100, 120)) as pilot:
+        await pilot.click("#level-editing_insert_02")
+        assert isinstance(app.screen, QuestScreen)
+        scr = app.screen
+        await pilot.press("k")
+        await pilot.press("O")
+        await pilot.pause()
+        assert scr.ev.editor.in_live_insert is True
+        assert "-- INSERT --" in str(
+            scr.query_one("#quest-status", Static).content)
+        await pilot.press(*list("zero"))
+        await pilot.press("escape")
+        await pilot.pause()
+        assert scr.ev.editor.buf.lines == ["zero", "first", "third"]
+        assert scr.ev.editor.in_live_insert is False
+        await pilot.press("j")
+        await pilot.press("o")
+        await pilot.pause()
+        assert scr.ev.editor.in_live_insert is True
+        await pilot.press(*list("second"))
+        await pilot.press("escape")
+        await pilot.pause()
+        assert isinstance(app.screen, ResultsScreen)
+        saved = json.loads((tmp_path / "save.json").read_text())
+        assert saved["best_ranks"]["editing_insert_02"] == "Mastery"
 
 
 @pytest.mark.asyncio
@@ -458,7 +579,7 @@ async def test_menu_keyboard_navigation(tmp_path):
         menu = app.screen
         assert isinstance(menu, MenuScreen)
         buttons = list(menu.query(Button))
-        assert len(buttons) == 21  # 20 levels + quit
+        assert len(buttons) == 35  # 34 levels + quit
         assert app.focused is buttons[0]
         await pilot.press("j")
         assert app.focused is buttons[1]

@@ -69,6 +69,36 @@ class Buffer:
         self.clamp()
         return removed
 
+    def replace_char(self, count: int, char: str) -> str:
+        """Overwrite `count` chars at the cursor with `char` (no shifting).
+        Cursor stays put. Returns replaced text ("" when nothing there)."""
+        line = self.lines[self.row]
+        if not line or self.col >= len(line):
+            return ""
+        end = min(len(line), self.col + count)
+        removed = line[self.col : end]
+        self.lines[self.row] = (
+            line[: self.col] + char * (end - self.col) + line[end:]
+        )
+        self.clamp()
+        return removed
+
+    def join_lines(self, row: int, count: int = 1) -> bool:
+        """Join `count` following lines into `row` with single spaces.
+
+        Next-line indent is stripped; blank lines add nothing. Cursor
+        stays (clamped). False when there is no next line.
+        """
+        if row + 1 >= len(self.lines):
+            return False
+        merged = 0
+        while merged < count and row + 1 < len(self.lines):
+            nxt = self.lines.pop(row + 1)
+            self.lines[row] += (" " + nxt.lstrip() if nxt.strip() else "")
+            merged += 1
+        self.clamp()
+        return merged > 0
+
     def delete_span(
         self, start: tuple[int, int], end: tuple[int, int]
     ) -> str:

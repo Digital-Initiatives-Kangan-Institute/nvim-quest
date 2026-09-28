@@ -1,0 +1,27 @@
+id: editing_change_03
+order: 26
+title: Whole Line
+lesson: Change
+region: Editing
+narrative: >
+  Two sign lines are entirely wrong — no word is worth saving. cc clears
+  the whole line and drops you into INSERT for the replacement.
+objective: Rewrite both TODO lines with cc.
+start_text:
+  - "TODO: rewrite this"
+  - "keep this line"
+  - "TODO: and this"
+start_cursor: [0, 0]
+targets: []
+end_text:
+  - "Done: rewritten"
+  - "keep this line"
+  - "Done: this too"
+allowed_commands: [h, j, k, l, c]
+introduced: []
+hints:
+  - "'cc' clears the whole line and opens INSERT — type, then Enter."
+  - "Walk down with 'j' between the two lines."
+reference_actions: 4
+mastery:
+  required_keys: [c]

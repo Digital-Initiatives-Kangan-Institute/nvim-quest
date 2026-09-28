@@ -21,7 +21,7 @@ from ..quest.scoring import describe_mastery, rank_attempt
 PENDING_FIND = {"f", "t"}
 OPERATORS = {"d", "c", "y"}
 IMMEDIATE = {"h", "j", "k", "l", "w", "b", "e", "0", "^", "$", "G", "n", "N",
-             "x", "p", "."}
+             "x", "p", ".", "J", "i", "a", "o", "O"}
 
 
 def format_allowed_motions(level: Level, keys_used: set[str]) -> str:
@@ -113,6 +113,10 @@ class QuestScreen(Screen):
         self.motion_count = ""  # count typed after an operator, e.g. "d2"
         self.pending_g = False
         self.pending_find = ""
+        self.pending_iw = False  # operator + "i", awaiting "w"
+        self.pending_r = False  # "r", awaiting the replacement character
+        self.pending_g = False
+        self.pending_find = ""
         self.message = "Move with the lesson's motions. '/' search, '?' hint."
         self.hint_index = 0
         self.finished = False
@@ -186,7 +190,9 @@ class QuestScreen(Screen):
         )
         scroll.scroll_to_widget(cursor_widget, animate=False)
         pos = self.ev.editor.pos
+        mode = "-- INSERT --" if self.ev.editor.in_live_insert else "-- NORMAL --"
         self.query_one("#quest-status", Static).update(
+            f"{mode}   "
             f"Cursor: line {pos[0] + 1}, col {pos[1] + 1}   "
             f"Actions: {self.ev.stats.actions}   "
             f"Mistakes: {self.ev.stats.invalid}   "
@@ -208,10 +214,11 @@ class QuestScreen(Screen):
         changed = r >= len(start) or line != start[r]
         base = "on dark_blue" if changed else ""
         shown = line if line else " "
+        live = self.ev.editor.in_live_insert
         for c, ch in enumerate(shown):
             style = base
             if (r, c) == cursor:
-                style = "reverse bold"
+                style = "underline bold" if live else "reverse bold"
             elif cur_target is not None and (r, c) == cur_target.pos:
                 style = "bold yellow underline"
             elif (r, c) in matches:
@@ -227,6 +234,8 @@ class QuestScreen(Screen):
         self.motion_count = ""
         self.pending_g = False
         self.pending_find = ""
+        self.pending_iw = False
+        self.pending_r = False
 
     def _hide_input(self, widget_id: str) -> Input:
         inp = self.query_one(widget_id, Input)
@@ -235,12 +244,46 @@ class QuestScreen(Screen):
         inp.value = ""
         return inp
 
+    async def _live_key(self, key: str) -> None:
+        """One keystroke in live insert mode. Never records an action:
+        the entry submit already counted this session as one."""
+        ed = self.ev.editor
+        if key == "escape":
+            ed.leave_insert()
+            self.message = "Back to normal mode."
+            await self.refresh_all()
+            return
+        if key == "enter":
+            ed.insert_newline()
+        elif key == "backspace":
+            ed.insert_backspace()
+        else:
+            char = key_to_char(key)
+            if char:
+                ed.insert_text_at_cursor(char)
+            # Anything else is ignored (no penalty).
+        hit, done = self.ev.check_progress()
+        if done:
+            ed.leave_insert()
+            self._report(hit, done, "")
+        await self.refresh_all()
+        if done:
+            self._finish()
+
     async def on_key(self, event) -> None:
         if self.finished:
             return
         if event.key in MODIFIER_KEYS:
             # Bare modifier press (e.g. Shift held for 'f('). Never part of
             # a command — ignore it without disturbing pending state.
+            event.prevent_default()
+            return
+        if self.ev.editor.in_live_insert:
+            # Live insert swallows everything except level quit; other
+            # keys are ignored vim-beep style (no mistake recorded).
+            if event.key == "ctrl+q":
+                return
+            await self._live_key(event.key)
             event.prevent_default()
             return
         search_input = self.query_one("#search-input", Input)
@@ -271,7 +314,9 @@ class QuestScreen(Screen):
         char = key_to_char(key)
         # Digits: counts — except a bare "0" with no pending state, which
         # is the line-start motion (or an operator's motion: d0).
-        if char.isdigit() and not self.pending_find and not self.pending_g:
+        if (char.isdigit() and not self.pending_find
+                and not self.pending_g and not self.pending_iw
+                and not self.pending_r):
             if char == "0" and not self._has_count_state():
                 if self.op_prefix:
                     await self._complete_op("0")
@@ -298,6 +343,26 @@ class QuestScreen(Screen):
             event.prevent_default()
             return
 
+        if self.pending_iw:
+            if char == "w":
+                await self._complete_op("iw")
+            else:
+                self.message = "'i' needs 'w' here (inner word) — cancelled."
+                self._clear_pending()
+                await self.refresh_all()
+            event.prevent_default()
+            return
+
+        if self.pending_r:
+            if char:
+                await self._complete_op(f"r{char}")
+            else:
+                self.message = "Replace cancelled."
+                self._clear_pending()
+                await self.refresh_all()
+            event.prevent_default()
+            return
+
         if self.pending_g:
             if char == "g":
                 await self._complete_op("gg")
@@ -319,14 +384,32 @@ class QuestScreen(Screen):
             if not self.op_prefix and char in self.level.allowed_set:
                 self.op_prefix = f"{self.count_buf}{char}"
                 self.count_buf = ""
-                self.message = (
-                    f"Operator '{self.op_prefix}' — motion? "
-                    f"('{self.op_prefix}{self.op_prefix[-1]}' works on lines. "
-                    "Esc cancels.)"
-                )
+                self.message = self._op_prompt(char)
                 await self.refresh_all()
             else:
                 # Second key of dd/yy-style, or disallowed: run as one action.
+                await self._complete_op(char)
+        elif char == "i" and self.op_prefix:
+            # Inner-word motion after an operator (ciw, diw).
+            self.pending_iw = True
+            self.message = f"({self.op_prefix}i… — press 'w' for inner word."
+            await self.refresh_all()
+        elif char == "r":
+            if self.op_prefix or char in self.level.allowed_set:
+                self.pending_r = True
+                self.message = "Replace with which character? (Esc cancels.)"
+                await self.refresh_all()
+            else:
+                await self._run(f"{self.count_buf}r")
+                self.count_buf = ""
+        elif char == "R":
+            if not self.op_prefix:
+                self.message = (
+                    "Replace mode (R) isn't in this region — "
+                    "'r' swaps one character."
+                )
+                await self.refresh_all()
+            else:
                 await self._complete_op(char)
         elif char in PENDING_FIND:
             if self.op_prefix or char in self.level.allowed_set:
@@ -367,6 +450,15 @@ class QuestScreen(Screen):
             return  # let bindings (ctrl+q etc.) work
         event.prevent_default()
 
+    def _op_prompt(self, op: str) -> str:
+        examples = {
+            "d": "'dd' deletes the line",
+            "c": "'cw' to word end, 'ciw' the word, 'cc' the line",
+            "y": "'yy' yanks the line",
+        }
+        return (f"Operator '{op}' — motion? "
+                f"({examples.get(op, 'motion?')}. Esc cancels.)")
+
     def _has_pending(self) -> bool:
         return bool(
             self.count_buf
@@ -374,14 +466,18 @@ class QuestScreen(Screen):
             or self.motion_count
             or self.pending_g
             or self.pending_find
+            or self.pending_iw
+            or self.pending_r
         )
 
     def _has_count_state(self) -> bool:
         return bool(self.count_buf or self.op_prefix or self.motion_count)
 
     async def _complete_op(self, motion: str) -> None:
-        """Run op_prefix + motion_count + motion as a single action."""
-        await self._run(f"{self.op_prefix}{self.motion_count}{motion}")
+        """Run count + op_prefix + motion_count + motion as one action."""
+        await self._run(
+            f"{self.count_buf}{self.op_prefix}{self.motion_count}{motion}"
+        )
         self._clear_pending()
 
     @on(Input.Submitted, "#search-input")
@@ -425,6 +521,8 @@ class QuestScreen(Screen):
             )
         if last.enter_insert and not done:
             self._show_insert()
+        elif self.ev.editor.in_live_insert and not done:
+            self.message = "INSERT — type away; Enter splits lines, Esc finishes."
         await self.refresh_all()
         if done:
             self._finish()

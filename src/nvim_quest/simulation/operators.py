@@ -4,7 +4,7 @@ Scope notes (MVP simplifications, documented for level authors):
 - Charwise operator ranges may span lines for `w`/`e` (lines are joined,
   vim-like). All other charwise motions stay on the cursor's line.
 - `cw` behaves like `ce` (to word end), matching real vim.
-- `cc` is not supported; `P`, visual mode, and `u` are out of scope.
+- `P`, visual mode, and `u` are out of scope.
 - Counts multiply: `d2w` deletes two words, `2dd` deletes two lines.
 - `iw` (inner word) accepts no count.
 """

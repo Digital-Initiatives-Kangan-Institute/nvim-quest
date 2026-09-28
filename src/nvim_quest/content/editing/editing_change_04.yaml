@@ -1,0 +1,23 @@
+id: editing_change_04
+order: 27
+title: Swap Letter
+lesson: Change
+region: Editing
+narrative: >
+  Two letters slipped through proofreading. r swaps the single character
+  under the cursor — no insert mode, no shifting, one keypress each.
+objective: Fix both wrong letters with r.
+start_text:
+  - "the quack brown fix"
+start_cursor: [0, 0]
+targets: []
+end_text:
+  - "the quick brown fox"
+allowed_commands: [h, l, w, b, e, r]
+introduced: [r]
+hints:
+  - "Walk to the wrong letter, press 'r', then type its replacement."
+  - "The cursor never moves — 'ri' turns the 'a' into 'i' in place."
+reference_actions: 8
+mastery:
+  required_keys: [r]

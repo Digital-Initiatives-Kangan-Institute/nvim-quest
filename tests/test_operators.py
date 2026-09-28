@@ -80,7 +80,14 @@ def test_parse_operators():
     assert _parse("p") == ("p", 1, "")
     assert _parse(".") == (".", 1, "")
     assert _parse("d") == ("d", 1, "")
-    assert _parse("cc") == ("c", 1, "c")
+    assert _parse("cc") == ("c", 1, "line")
+    assert _parse("ri") == ("r", 1, "i")
+    assert _parse("3rX") == ("r", 3, "X")
+    assert _parse("J") == ("J", 1, "")
+    assert _parse("2J") == ("J", 2, "")
+    assert _parse("i") == ("i", 1, "")
+    assert _parse("o") == ("o", 1, "")
+    assert _parse("O") == ("O", 1, "")
 
 
 # --- x ---------------------------------------------------------------------
@@ -167,7 +174,6 @@ def test_bare_and_bad_operators_invalid():
     e = ed(["abc"], 0, 0)
     assert e.apply("d").invalid is True
     assert e.apply("dz").invalid is True
-    assert e.apply("cc").invalid is True  # out of scope
     assert e.buf.lines == ["abc"]
 
 
@@ -177,7 +183,135 @@ def test_operator_respects_allowed_set():
     assert e.buf.lines == ["map rope"]
 
 
-# --- change + insert -------------------------------------------------------
+# --- replace ---------------------------------------------------------------
+
+
+def test_replace_basic():
+    e = ed(["quack"], 0, 2)
+    res = e.apply("ri")
+    assert (res.key, res.family) == ("r", "edit") and not res.invalid
+    assert e.buf.lines == ["quick"] and e.pos == (0, 2)
+    # Register untouched, repeat recorded.
+    assert e.unnamed is None
+    assert e.last_change is not None and e.last_change.op == "r"
+
+
+def test_replace_count_and_repeat():
+    e = ed(["aaab"], 0, 0)
+    e.apply("3rX")
+    assert e.buf.lines == ["XXXb"]
+    e.apply("l")
+    e.apply(".")
+    assert e.buf.lines == ["XXXX"]
+
+
+def test_replace_empty_line_invalid():
+    assert ed([""], 0, 0).apply("rx").invalid is True
+
+
+# --- change line -----------------------------------------------------------
+
+
+def test_cc_clears_line_and_inserts():
+    e = ed(["old heading", "keep"], 0, 0)
+    res = e.apply("cc")
+    assert res.enter_insert is True
+    assert e.buf.lines == ["", "keep"] and e.pos == (0, 0)
+    assert e.commit_insert("new heading") is True
+    assert e.buf.lines == ["new heading", "keep"]
+
+
+def test_cc_repeat():
+    e = ed(["a", "b"], 0, 0)
+    e.apply("cc")
+    e.commit_insert("A")
+    e.apply("j")
+    e.apply(".")
+    assert e.buf.lines == ["A", "A"]
+
+
+# --- join ------------------------------------------------------------------
+
+
+def test_join_basic():
+    e = ed(["half one", "half two", "third"], 0, 0)
+    res = e.apply("J")
+    assert (res.key, res.family) == ("J", "edit") and not res.invalid
+    assert e.buf.lines == ["half one half two", "third"]
+    assert e.pos == (0, 0)
+
+
+def test_join_strips_indent_and_counts():
+    e = ed(["a", "  b", "c"], 0, 0)
+    e.apply("2J")
+    assert e.buf.lines == ["a b c"]
+    assert e.last_change is not None and e.last_change.op == "J"
+
+
+def test_join_last_line_invalid():
+    assert ed(["only"], 0, 0).apply("J").invalid is True
+
+
+def test_dot_repeats_join():
+    e = ed(["a", "b", "c"], 0, 0)
+    e.apply("J")
+    e.apply(".")
+    assert e.buf.lines == ["a b c"]
+
+
+# --- live insert (i/a/o/O) -------------------------------------------------
+
+
+def test_insert_entry_positions():
+    e = ed(["ab", "cd"], 0, 0)
+    assert e.apply("i").invalid is False
+    assert (e.buf.row, e.buf.col) == (0, 0) and e.in_live_insert
+    e.leave_insert()
+    e = ed(["ab", "cd"], 0, 0)
+    e.apply("a")
+    assert (e.buf.row, e.buf.col) == (0, 1) and e.in_live_insert
+    e.leave_insert()
+    e = ed(["ab", "cd"], 0, 0)
+    e.apply("o")
+    assert e.buf.lines == ["ab", "", "cd"] and (e.buf.row, e.buf.col) == (1, 0)
+    e.leave_insert()
+    e = ed(["ab", "cd"], 1, 1)
+    e.apply("O")
+    assert e.buf.lines == ["ab", "", "cd"] and (e.buf.row, e.buf.col) == (1, 0)
+
+
+def test_live_typing_newline_backspace_leave():
+    e = ed(["ab"], 0, 1)
+    e.apply("i")
+    assert e.insert_text_at_cursor("X") is True
+    assert e.buf.lines == ["aXb"]
+    assert e.insert_newline() is True
+    assert e.buf.lines == ["aX", "b"] and e.pos == (1, 0)
+    assert e.insert_backspace() is True  # joins lines back
+    assert e.buf.lines == ["aXb"] and e.pos == (0, 2)
+    assert e.insert_backspace() is True
+    assert e.buf.lines == ["ab"]
+    assert e.leave_insert() is True
+    assert e.last_change is not None and e.last_change.op == "insert"
+    assert e.leave_insert() is False  # nothing pending
+
+
+def test_dot_repeats_live_insert():
+    e = ed(["x"], 0, 1)
+    e.apply("a")
+    e.insert_text_at_cursor("yz")
+    e.leave_insert()
+    assert e.buf.lines == ["xyz"]
+    e.apply("0")
+    e.apply(".")
+    assert e.buf.lines == ["yzxyz"]
+
+
+def test_empty_live_session_valid_but_not_repeated():
+    e = ed(["ab"], 0, 0)
+    assert e.apply("i").invalid is False
+    assert e.leave_insert() is True
+    assert e.apply(".").invalid is True  # empty insert repeats nothing
 
 
 def test_cw_then_commit():

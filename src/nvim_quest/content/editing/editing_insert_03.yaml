@@ -1,0 +1,23 @@
+id: editing_insert_03
+order: 33
+title: Insert Within
+lesson: Insert
+region: Editing
+narrative: >
+  The cursor already sits on the broken character. 'i' inserts right
+  there — 'a' would need an extra step backwards first.
+objective: Insert the missing 'o' with i, so the line reads 'colour is here'.
+start_text:
+  - "colur is here"
+start_cursor: [0, 3]
+targets: []
+end_text:
+  - "colour is here"
+allowed_commands: [h, l, i]
+introduced: [i]
+hints:
+  - "Press 'i', type 'o', then Esc — one action total."
+  - "Try the 'a' route instead: it costs a step back, Silver at best."
+reference_actions: 1
+mastery:
+  required_keys: [i]

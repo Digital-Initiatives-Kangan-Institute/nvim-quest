@@ -1,0 +1,24 @@
+id: editing_yank_01
+order: 28
+title: Duplicate Line
+lesson: Copy and Paste
+region: Editing
+narrative: >
+  The harbour needs the same berth twice. Yank the line with yy, then put
+  the copy below with p.
+objective: Duplicate the line with yy and p.
+start_text:
+  - "server_port = 8080"
+start_cursor: [0, 0]
+targets: []
+end_text:
+  - "server_port = 8080"
+  - "server_port = 8080"
+allowed_commands: [h, j, k, l, y, p]
+introduced: [y, p]
+hints:
+  - "'yy' copies the whole line without changing anything."
+  - "'p' puts a linewise copy below the cursor."
+reference_actions: 2
+mastery:
+  required_keys: [y, p]

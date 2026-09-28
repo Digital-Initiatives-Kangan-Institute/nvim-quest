@@ -1,0 +1,23 @@
+id: editing_delete_02
+order: 22
+title: Word Weeding
+lesson: Delete
+region: Editing
+narrative: >
+  Weeds choke the supply list. Hop to each weed with w and pull it with dw —
+  one weed, one motion pair.
+objective: Delete both weeds with dw.
+start_text:
+  - "plant weed water weed harvest"
+start_cursor: [0, 0]
+targets: []
+end_text:
+  - "plant water harvest"
+allowed_commands: [h, l, w, b, e, d]
+introduced: [d]
+hints:
+  - "'w' hops to the next word; 'dw' deletes from here to there."
+  - "After the first weed the line shifts — hop again with 'w'."
+reference_actions: 4
+mastery:
+  required_keys: [d]

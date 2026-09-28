@@ -1,0 +1,23 @@
+id: editing_change_02
+order: 25
+title: Inner Remedy
+lesson: Change
+region: Editing
+narrative: >
+  You land mid-word, where cw would leave a fragment behind. ciw cleans
+  the whole word no matter where inside it you stand — compare the two.
+objective: Fix both broken words with ciw.
+start_text:
+  - "fix thhe issuem"
+start_cursor: [0, 5]
+targets: []
+end_text:
+  - "fix the issue"
+allowed_commands: [h, l, w, b, e, c]
+introduced: []
+hints:
+  - "From mid-word, 'cw' would leave a stump — 'ciw' takes the whole word."
+  - "After the first fix, hop forward with 'w' to the next broken word."
+reference_actions: 3
+mastery:
+  required_keys: [c]

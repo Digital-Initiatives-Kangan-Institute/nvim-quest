@@ -41,6 +41,8 @@ def load_regions(
         levels = load_levels(sub)
         if levels:
             regions.append((levels[0].region or sub.name.title(), levels))
+    # Pedagogical order follows the levels' order numbers, not dir names.
+    regions.sort(key=lambda item: min(lvl.order for lvl in item[1]))
     return regions
 
 

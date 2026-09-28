@@ -1,0 +1,29 @@
+id: editing_repeat_01
+order: 30
+title: Do It Again
+lesson: Repeating
+region: Editing
+narrative: >
+  Three crates share the same wrong label. Fix it once properly, then let
+  '.' replay the fix on the other two — repeating beats retyping, and the
+  Gold path needs the dot.
+objective: "Change every 'old' into 'new', so the shelves read: new one, new two, new three. Fix line 1 with cw, then replay the fix with '.' on lines 2 and 3."
+start_text:
+  - "old one"
+  - "old two"
+  - "old three"
+start_cursor: [0, 0]
+targets: []
+end_text:
+  - "new one"
+  - "new two"
+  - "new three"
+allowed_commands: [h, j, k, l, w, b, e, c, "."]
+introduced: ["."]
+hints:
+  - "Wanted end state: 'new one', 'new two', 'new three'."
+  - "Fix line 1 with 'cw' plus 'new' — that becomes the repeatable change."
+  - "Walk down with 'j', step to each word start with 'b', and press '.'."
+reference_actions: 7
+mastery:
+  required_keys: ["."]

@@ -1,6 +1,7 @@
 # NeoVim Quest Editing Region Plan (Region 2)
 
-Status: planned, not implemented. Navigation (20 levels) is complete.
+Status: implemented (14 levels, orders 21–34). Originally planned as 8;
+expanded during build with `cc`, `r`, live insert, and `J` (see addendum).
 
 ## Goal
 
@@ -151,6 +152,24 @@ shows a lesson needs reinforcement).
 5. Delete lesson levels → Change → Yank/put → Repeat, calibrating each
    (reference must earn Mastery).
 6. Menu/ordering: loader already sorts by `order`; no changes expected.
+
+## Addendum: scope expansions during build
+
+- **`cc`**: accepted after review — linewise change reuses the `dd` path
+  plus insert (~5 lines). Own level `editing_change_03`. `S` stays out
+  (pure synonym); `C` already works via `c$`.
+- **`r`**: replace-char operator with pending-char UI, `.` repeat, no
+  register change. Level `editing_change_04`. Bare `R` (replace mode)
+  stays out.
+- **Live insert**: `i`/`a`/`o`/`O` entry with per-keystroke buffer editing
+  (separate typing cursor, since normal cursors can't rest past EOL),
+  `-- INSERT --` indicator, one action per session. Levels
+  `editing_insert_01/02/03` (`a`, `o`+`O`, `i`).
+- **`J`**: join lines (single space, indent stripped, counts join N).
+  Lesson "Join", level `editing_join_01`.
+
+Final region: Delete 3, Change 4, Copy/Paste 2, Repeat 1, Insert 3,
+Join 1 = 14 levels (orders 21–34). Game total: 34 levels.
 
 ## Risks / open questions
 

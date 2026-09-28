@@ -1,0 +1,27 @@
+id: editing_yank_02
+order: 29
+title: Reorder
+lesson: Copy and Paste
+region: Editing
+narrative: >
+  The manifest order is wrong: 'first' belongs at the bottom. Cut it with
+  dd, walk down, and put it where it belongs.
+objective: Move the first line to the bottom with dd and p.
+start_text:
+  - "first"
+  - "second"
+  - "third"
+start_cursor: [0, 0]
+targets: []
+end_text:
+  - "second"
+  - "third"
+  - "first"
+allowed_commands: [h, j, k, l, d, y, p]
+introduced: []
+hints:
+  - "'dd' cuts the line into the register; 'p' puts it below the cursor."
+  - "Combine Region 1 walking with the cut and the put."
+reference_actions: 3
+mastery:
+  required_keys: [d, p]

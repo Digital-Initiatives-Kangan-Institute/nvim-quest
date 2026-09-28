@@ -1,0 +1,23 @@
+id: editing_insert_01
+order: 31
+title: Append Word
+lesson: Insert
+region: Editing
+narrative: >
+  The sign ends too early. 'a' appends after the cursor — type the missing
+  word, then Esc back to normal mode. The whole session is one action.
+objective: Append ' gate' with a, so the line reads 'open the gate'.
+start_text:
+  - "open the"
+start_cursor: [0, 7]
+targets: []
+end_text:
+  - "open the gate"
+allowed_commands: [h, l, a]
+introduced: [a]
+hints:
+  - "Press 'a', type ' gate' (with the leading space), then Esc."
+  - "Watch the mode line flip between NORMAL and INSERT."
+reference_actions: 1
+mastery:
+  required_keys: [a]

@@ -1,0 +1,28 @@
+id: editing_delete_03
+order: 23
+title: Line Clearing
+lesson: Delete
+region: Editing
+narrative: >
+  Rotten crates are marked 'drop'. Clear each whole line with dd —
+  one keypress per line, no aiming needed.
+objective: Delete every 'drop' line with dd.
+start_text:
+  - "keep"
+  - "drop"
+  - "drop"
+  - "keep"
+  - "drop"
+start_cursor: [0, 0]
+targets: []
+end_text:
+  - "keep"
+  - "keep"
+allowed_commands: [h, j, k, l, d]
+introduced: []
+hints:
+  - "'dd' deletes the whole line, wherever the cursor sits on it."
+  - "Adjacent rotten lines fall together — try '2dd' for a bonus."
+reference_actions: 5
+mastery:
+  required_keys: [d]

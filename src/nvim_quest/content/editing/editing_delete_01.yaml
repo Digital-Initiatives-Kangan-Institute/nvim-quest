@@ -1,0 +1,23 @@
+id: editing_delete_01
+order: 21
+title: First Cut
+lesson: Delete
+region: Editing
+narrative: >
+  The archive printer stuttered, doubling letters. Walk to each doubled
+  character and cut it out with x.
+objective: Delete the two doubled characters with x.
+start_text:
+  - "the exxample codee"
+start_cursor: [0, 0]
+targets: []
+end_text:
+  - "the example code"
+allowed_commands: [h, l, x]
+introduced: [x]
+hints:
+  - "Walk right with 'l', then press 'x' to cut the character under the cursor."
+  - "After the first cut the line shifts left — count again before the second."
+reference_actions: 18
+mastery:
+  required_keys: [x]

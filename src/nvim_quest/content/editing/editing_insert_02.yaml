@@ -1,0 +1,27 @@
+id: editing_insert_02
+order: 32
+title: Open Both Ways
+lesson: Insert
+region: Editing
+narrative: >
+  Shelves are missing above and below. 'O' opens a line above, 'o' one
+  below — fill both gaps, one session each.
+objective: Add 'zero' above and 'second' below, ending with zero, first, second, third.
+start_text:
+  - "first"
+  - "third"
+start_cursor: [1, 0]
+targets: []
+end_text:
+  - "zero"
+  - "first"
+  - "second"
+  - "third"
+allowed_commands: [h, j, k, l, o, O]
+introduced: [o, O]
+hints:
+  - "'O' opens above the cursor line; 'o' opens below it."
+  - "From the bottom: k, O, 'zero', Esc — then j, o, 'second', Esc."
+reference_actions: 4
+mastery:
+  required_keys: [o, O]

@@ -1,0 +1,26 @@
+id: editing_join_01
+order: 34
+title: Join Lines
+lesson: Join
+region: Editing
+narrative: >
+  A sentence got split across two lines. 'J' joins the next line onto
+  this one with a single space.
+objective: Join the first two lines with J.
+start_text:
+  - "half one"
+  - "half two"
+  - "third"
+start_cursor: [2, 0]
+targets: []
+end_text:
+  - "half one half two"
+  - "third"
+allowed_commands: [h, j, k, l, J]
+introduced: [J]
+hints:
+  - "Walk up with 'k', then 'J' pulls the next line up with one space."
+  - "'J' on the last line has nothing to join — it does nothing."
+reference_actions: 3
+mastery:
+  required_keys: [J]
