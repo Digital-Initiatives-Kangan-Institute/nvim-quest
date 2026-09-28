@@ -28,6 +28,8 @@ nvim-quest            # or: python -m nvim_quest
 ```
 
 - **Menu:** `j`/`k` move, `l` (or Enter) opens a level, `q` quits.
+  The game is keyboard-only by design (no mouse), so terminal text
+  selection keeps working.
 - **Levels:** keys act as Vim normal-mode commands — `h j k l w b e
   0 ^ $ gg G f<char> t<char> /term n N`, with counts (`7j`, `3w`).
   `/` opens search, `?` shows a hint, `Ctrl+Q` quits the level.

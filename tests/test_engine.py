@@ -4,7 +4,7 @@ from nvim_quest.quest.evaluator import Evaluator
 from nvim_quest.quest.models import Level, MasteryRule, Target
 from nvim_quest.quest.scoring import (
     GOLD, MASTERY, BRONZE, SILVER, LOCKED, rank_attempt,
-    describe_mastery, mastery_gaps,
+    describe_mastery, mastery_gaps, techniques_missing,
 )
 from nvim_quest.simulation.search import SearchSession, find_matches
 from nvim_quest.simulation.state import VirtualEditor, _parse
@@ -153,3 +153,18 @@ def test_describe_mastery():
     assert "use 0 ^ $ gg G" in text
     assert "no hints" in text
     assert "13 actions" in text
+
+
+def test_techniques_missing_tracks_families_and_keys():
+    from nvim_quest.quest.evaluator import AttemptStats
+
+    lvl = make_level(
+        mastery=MasteryRule(required_keys=["0"],
+                            required_families=["word", "find"]),
+    )
+    s = AttemptStats(completed=False, families_used={"word"},
+                     keys_used=set())
+    assert techniques_missing(lvl, s) == ["0", "find motions"]
+    s.families_used.add("find")
+    s.keys_used.add("0")
+    assert techniques_missing(lvl, s) == []

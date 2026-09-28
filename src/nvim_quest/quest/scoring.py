@@ -84,6 +84,21 @@ def describe_mastery(level: Level) -> str:
     return "Mastery needs: " + ", ".join(bits)
 
 
+def techniques_missing(level: Level, stats: AttemptStats) -> list[str]:
+    """Required keys/families not yet demonstrated in this attempt.
+
+    Shown live during play (hints, mistakes, and action counts are visible
+    elsewhere already), so the player always knows what Mastery still wants.
+    """
+    m = level.mastery
+    missing = [k for k in m.required_keys if k not in stats.keys_used]
+    missing += [
+        f + " motions" for f in m.required_families
+        if f not in stats.families_used
+    ]
+    return missing
+
+
 def mastery_gaps(level: Level, stats: AttemptStats) -> list[str]:
     """Human-readable reasons a completed attempt missed Mastery (or more).
 

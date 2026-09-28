@@ -72,7 +72,7 @@ SOLUTIONS: dict[str, list[Step]] = {
     ),
     "navigation_final_02": (
         ["4j", "w", "w", "e", "e", "e", "j", "0", "f:", "9j", "h",
-         "4j", "^", "2j", "$", "/sigil", "n", "n", "G", "gg"]
+         "4j", "^", "2j", "$", "/sigil", "n", "n", "N", "G", "gg"]
     ),
 }
 

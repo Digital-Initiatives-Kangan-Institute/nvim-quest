@@ -63,13 +63,15 @@ targets:
   - {row: 18, col: 2, label: "first non-blank of the 'open_gate' line"}
   - {row: 20, col: 13, label: "end of the 'light_rune' line"}
   - {row: 22, col: 4, label: "third 'sigil'"}
-  - {row: 40, col: 9, label: "final 'sigil'"}
+  - {row: 40, col: 9, label: "fifth 'sigil'"}
+  - {row: 30, col: 4, label: "fourth 'sigil'"}
   - {row: 44, col: 0, label: "archive footer"}
   - {row: 0, col: 0, label: "archive header"}
 allowed_commands: [h, j, k, l, w, b, e, "0", ^, $, gg, G, f, t, /, n, N]
 introduced: []
 hints:
   - "Small hops: w/b/e. Line edges: 0/^/$. Far away: gg/G with counts. Punctuation: f/t. Repeats: /."
-reference_actions: 20
+  - "Overshot an echo? 'N' steps back to the previous match."
+reference_actions: 21
 mastery:
   required_families: [character, word, line, document, find, search]

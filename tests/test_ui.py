@@ -378,15 +378,17 @@ async def test_operator_escape_cancels_without_action(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_menu_groups_levels_by_region(tmp_path):
-    """Menu renders one section per region; j/k travel across sections."""
-    from textual.widgets import Button
+async def test_menu_tabs_and_mastery_gate(tmp_path):
+    """Tabs per part; later parts locked until prior final is mastered."""
+    from textual.widgets import Button, TabbedContent
 
     from nvim_quest.quest.models import Level
     from nvim_quest.ui.app import MenuScreen
 
-    nav = Level(id="n1", title="Nav One", lesson="L", region="Navigation")
-    edt = Level(id="e1", title="Edit One", lesson="M", region="Editing")
+    nav = Level(id="n1", title="Nav One", lesson="L", region="Navigation",
+                order=1)
+    edt = Level(id="e1", title="Edit One", lesson="M", region="Editing",
+                order=2)
     store = ProgressStore(path=tmp_path / "save.json")
     app = NvimQuestApp(store=store)
     async with app.run_test() as pilot:
@@ -395,17 +397,40 @@ async def test_menu_groups_levels_by_region(tmp_path):
         await pilot.pause()
         menu = app.screen
         assert isinstance(menu, MenuScreen)
-        heads = [str(s.content) for s in menu.query(".region-head")]
-        assert len(heads) == 2
-        assert "Navigation" in heads[0] and "Editing" in heads[1]
+        tabbed = menu.query_one(TabbedContent)
+        assert tabbed.active == "tab-navigation"
         assert "Navigation: 0/1  ·  Editing: 0/1" in str(
             menu.query_one("#menu-progress", Static).content)
-        buttons = list(menu.query(Button))
-        assert [b.id for b in buttons] == ["level-n1", "level-e1", "quit"]
+        # Editing locked: notice shown, buttons hidden.
+        notice = str(menu.query_one("#notice-editing", Static).content)
+        assert "LOCKED" in notice and "Nav One" in notice
+        assert menu.query_one("#list-editing").display is False
+        # j stays in the open tab; gt switches to the locked tab.
         await pilot.press("j")
-        assert app.focused is buttons[1]  # crossed into Editing section
+        assert app.focused is menu.query_one("#quit-navigation", Button)
+        await pilot.press("g")
+        await pilot.press("t")
+        await pilot.pause()
+        assert tabbed.active == "tab-editing"
+        assert app.focused is menu.query_one("#quit-editing", Button)
+        # gT switches back.
+        await pilot.press("g")
+        await pilot.press("T")
+        await pilot.pause()
+        assert tabbed.active == "tab-navigation"
+        # Mastering the gatekeeper unlocks the next part on refresh.
+        store.record("n1", "Mastery", 3)
+        menu._refresh()
+        await pilot.pause()
+        assert menu.query_one("#list-editing").display is not False
+        assert menu.query_one("#notice-editing").display is False
+        await pilot.press("g")
+        await pilot.press("t")
+        await pilot.pause()
+        assert tabbed.active == "tab-editing"
+        assert app.focused is menu.query_one("#level-e1", Button)
         await pilot.press("j")
-        assert app.focused is buttons[2]
+        assert app.focused is menu.query_one("#quit-editing", Button)
 
 
 def test_load_regions(tmp_path):
@@ -420,9 +445,12 @@ def test_load_regions(tmp_path):
 @pytest.mark.asyncio
 async def test_editing_level_playthrough(tmp_path):
     """First Cut via the menu: x-cuts complete a text goal end to end."""
-    store = ProgressStore(path=tmp_path / "save.json")
+    store = _store_with_editing_unlocked(tmp_path)
     app = NvimQuestApp(store=store)
     async with app.run_test(size=(100, 110)) as pilot:
+        await pilot.press("g")
+        await pilot.press("t")
+        await pilot.pause()
         await pilot.click("#level-editing_delete_01")
         assert isinstance(app.screen, QuestScreen)
         scr = app.screen
@@ -445,9 +473,12 @@ async def test_editing_level_playthrough(tmp_path):
 @pytest.mark.asyncio
 async def test_ciw_flow_completes_inner_remedy(tmp_path):
     """Inner Remedy: c,i,w composes ciw (used to swallow the 'i')."""
-    store = ProgressStore(path=tmp_path / "save.json")
+    store = _store_with_editing_unlocked(tmp_path)
     app = NvimQuestApp(store=store)
     async with app.run_test(size=(100, 110)) as pilot:
+        await pilot.press("g")
+        await pilot.press("t")
+        await pilot.pause()
         await pilot.click("#level-editing_change_02")
         assert isinstance(app.screen, QuestScreen)
         scr = app.screen
@@ -473,9 +504,12 @@ async def test_ciw_flow_completes_inner_remedy(tmp_path):
 @pytest.mark.asyncio
 async def test_disallowed_insert_key_is_invalid(tmp_path):
     """Bare 'i' where insert isn't allowed records one invalid action."""
-    store = ProgressStore(path=tmp_path / "save.json")
+    store = _store_with_editing_unlocked(tmp_path)
     app = NvimQuestApp(store=store)
     async with app.run_test(size=(100, 110)) as pilot:
+        await pilot.press("g")
+        await pilot.press("t")
+        await pilot.pause()
         await pilot.click("#level-editing_change_02")
         scr = app.screen
         await pilot.press("i")
@@ -488,9 +522,12 @@ async def test_disallowed_insert_key_is_invalid(tmp_path):
 @pytest.mark.asyncio
 async def test_replace_flow_completes_swap_letter(tmp_path):
     """Swap Letter via menu: r,i / r,o compose through pending_r."""
-    store = ProgressStore(path=tmp_path / "save.json")
+    store = _store_with_editing_unlocked(tmp_path)
     app = NvimQuestApp(store=store)
     async with app.run_test(size=(100, 120)) as pilot:
+        await pilot.press("g")
+        await pilot.press("t")
+        await pilot.pause()
         await pilot.click("#level-editing_change_04")
         assert isinstance(app.screen, QuestScreen)
         scr = app.screen
@@ -508,9 +545,12 @@ async def test_live_insert_both_directions(tmp_path):
     """Open Both Ways: O above, o below, Esc leaves insert each time."""
     from textual.widgets import Input
 
-    store = ProgressStore(path=tmp_path / "save.json")
+    store = _store_with_editing_unlocked(tmp_path)
     app = NvimQuestApp(store=store)
     async with app.run_test(size=(100, 120)) as pilot:
+        await pilot.press("g")
+        await pilot.press("t")
+        await pilot.pause()
         await pilot.click("#level-editing_insert_02")
         assert isinstance(app.screen, QuestScreen)
         scr = app.screen
@@ -537,8 +577,33 @@ async def test_live_insert_both_directions(tmp_path):
         assert saved["best_ranks"]["editing_insert_02"] == "Mastery"
 
 
+def _store_with_editing_unlocked(tmp_path):
+    """Fresh store with the Navigation final mastered (Editing playable)."""
+    store = ProgressStore(path=tmp_path / "save.json")
+    store.record("navigation_final_02", "Mastery", 20)
+    return store
+
+
 @pytest.mark.asyncio
-async def test_menu_refreshes_ranks_without_restart(tmp_path):
+async def test_demo_tracker_lists_missing_families(tmp_path):
+    """Grand Archive: the mastery line names all six families up front."""
+    store = ProgressStore(path=tmp_path / "save.json")
+    app = NvimQuestApp(store=store)
+    async with app.run_test(size=(100, 110)) as pilot:
+        await pilot.click("#level-navigation_final_02")
+        assert isinstance(app.screen, QuestScreen)
+        scr = app.screen
+        mastery = str(scr.query_one("#quest-mastery", Static).content)
+        for fam in ["character", "word", "line", "document", "find",
+                    "search"]:
+            assert fam in mastery
+        # Using word motions drops that family from the missing list.
+        await pilot.press("w")
+        await pilot.press("w")
+        await pilot.pause()
+        mastery = str(scr.query_one("#quest-mastery", Static).content)
+        assert "word motions" not in mastery
+        assert "find motions" in mastery
     """Menu shows the new rank immediately after returning from a level."""
     from textual.widgets import Button
 
@@ -570,7 +635,7 @@ async def test_menu_refreshes_ranks_without_restart(tmp_path):
 
 @pytest.mark.asyncio
 async def test_menu_keyboard_navigation(tmp_path):
-    """Vim-only nav: j/k move focus (scrolling follows), l opens."""
+    """Vim-only nav within the active tab: j/k move, l opens, gt tabs."""
     from textual.widgets import Button
 
     store = ProgressStore(path=tmp_path / "save.json")
@@ -579,29 +644,52 @@ async def test_menu_keyboard_navigation(tmp_path):
         menu = app.screen
         assert isinstance(menu, MenuScreen)
         buttons = list(menu.query(Button))
-        assert len(buttons) == 35  # 34 levels + quit
-        assert app.focused is buttons[0]
+        assert len(buttons) == 36  # 34 levels + per-tab Quit
+        nav_buttons = buttons[:20]
+        nav_quit = buttons[20]
+        assert nav_quit.id == "quit-navigation"
+        assert app.focused is nav_buttons[0]
         await pilot.press("j")
-        assert app.focused is buttons[1]
+        assert app.focused is nav_buttons[1]
         await pilot.press("k")
-        assert app.focused is buttons[0]
+        assert app.focused is nav_buttons[0]
         # Arrows are not vim motions: ignored.
         await pilot.press("down")
         await pilot.press("up")
-        assert app.focused is buttons[0]
-        # Walk to the bottom: focus tracks and the view scrolls with it.
-        for _ in range(len(buttons) - 1):
+        assert app.focused is nav_buttons[0]
+        # Walk past the last level of the tab: lands on Quit (wraps in-tab).
+        for _ in range(20):
             await pilot.press("j")
-        assert app.focused is buttons[-1]
+        assert app.focused is nav_quit
         from textual.containers import VerticalScroll
 
-        scroller = menu.query_one("#level-list", VerticalScroll)
+        scroller = menu.query_one("#list-navigation", VerticalScroll)
         assert scroller.scroll_y > 0
-        # Walk back to the second button and open it with 'l'.
-        for _ in range(len(buttons) - 2):
-            await pilot.press("k")
-        assert app.focused is buttons[1]
+        # Quit must actually render (it used to sit off-screen, unreachable).
+        assert "Quit" in app.export_screenshot()
+        quit_region = menu.query_one("#quit-navigation", Button).region
+        assert quit_region.y + quit_region.height <= menu.size.height
+        # One more j wraps back to the top of the tab (never into Editing).
+        await pilot.press("j")
+        assert app.focused is nav_buttons[0]
+        # Open the second level with 'l'.
+        await pilot.press("j")
         await pilot.press("l")
         await pilot.pause()
         assert isinstance(app.screen, QuestScreen)
         assert app.screen.level.id == "navigation_character_02"
+
+
+def test_main_disables_mouse(monkeypatch):
+    """The game is keyboard-only: terminal mouse reporting stays off."""
+    from nvim_quest import __main__ as main_module
+    from nvim_quest.ui.app import NvimQuestApp
+
+    calls: dict = {}
+
+    def fake_run(self, **kwargs):
+        calls.update(kwargs)
+
+    monkeypatch.setattr(NvimQuestApp, "run", fake_run)
+    main_module.main()
+    assert calls.get("mouse") is False

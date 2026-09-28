@@ -16,7 +16,7 @@ from textual.widgets import Footer, Header, Input, Static
 from ..progress.store import ProgressStore
 from ..quest.evaluator import Evaluator
 from ..quest.models import Level
-from ..quest.scoring import describe_mastery, rank_attempt
+from ..quest.scoring import describe_mastery, rank_attempt, techniques_missing
 
 PENDING_FIND = {"f", "t"}
 OPERATORS = {"d", "c", "y"}
@@ -158,18 +158,14 @@ class QuestScreen(Screen):
         )
         allowed = format_allowed_motions(lvl, self.ev.stats.keys_used)
         self.query_one("#quest-allowed", Static).update(allowed)
+        describe = describe_mastery(lvl)
         self.query_one("#quest-mastery", Static).update(
-            f"[dim]{describe_mastery(lvl)}[/dim]"
+            f"[dim]{describe}[/dim]\n"
+            f"{self._demo_text()}"
         )
-        lines = []
-        for i, t in enumerate(lvl.targets):
-            if i < self.ev.current_target_index:
-                lines.append(f"  [green]✓ {t.label}[/green]")
-            elif i == self.ev.current_target_index:
-                lines.append(f"  [bold yellow]→ {t.label}[/bold yellow]")
-            else:
-                lines.append(f"  [dim]· {t.label}[/dim]")
-        self.query_one("#quest-targets", Static).update("\n".join(lines))
+        self.query_one("#quest-targets", Static).update(
+            "\n".join(self._target_lines())
+        )
         # The buffer can gain or lose lines through edits: mount missing
         # row widgets, hide surplus ones, then update the visible rows.
         scroll = self.query_one("#quest-buffer-scroll", VerticalScroll)
@@ -199,6 +195,44 @@ class QuestScreen(Screen):
             f"Hints: {self.ev.stats.hints_used}\n"
             f"[dim]{self.message}[/dim]"
         )
+
+    def _demo_text(self) -> str:
+        missing = techniques_missing(self.level, self.ev.stats)
+        if missing:
+            return ("[bold cyan]Still to demo:[/bold cyan] "
+                    "[bold]" + ", ".join(missing) + "[/bold]")
+        return ("[bold cyan]Still to demo:[/bold cyan] "
+                "[green]everything — finish clean![/green]")
+
+    def _target_lines(self) -> list[str]:
+        """Checklist, bounded so long levels can't starve the buffer.
+
+        Short chains render fully; long ones show progress + a window
+        around the current target.
+        """
+        targets = self.level.targets
+        idx = self.ev.current_target_index
+        total = len(targets)
+        if total <= 6:
+            lines = []
+            for i, t in enumerate(targets):
+                if i < idx:
+                    lines.append(f"  [green]✓ {t.label}[/green]")
+                elif i == idx:
+                    lines.append(f"  [bold yellow]→ {t.label}[/bold yellow]")
+                else:
+                    lines.append(f"  [dim]· {t.label}[/dim]")
+            return lines
+        lines = [f"  [dim]{idx}/{total} reached[/dim]"]
+        for t in targets[idx : idx + 4]:
+            if t is targets[idx]:
+                lines.append(f"  [bold yellow]→ {t.label}[/bold yellow]")
+            else:
+                lines.append(f"  [dim]· {t.label}[/dim]")
+        remaining = total - idx - min(4, total - idx)
+        if remaining > 0:
+            lines.append(f"  [dim]· {remaining} more…[/dim]")
+        return lines
 
     def _render_line(self, r: int) -> Text:
         out = Text()

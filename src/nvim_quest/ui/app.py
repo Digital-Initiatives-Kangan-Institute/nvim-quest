@@ -8,13 +8,13 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, VerticalScroll
 from textual.screen import Screen
-from textual.widgets import Button, Footer, Header, Static
+from textual.widgets import Button, Footer, Header, Static, TabbedContent, TabPane
 
 from ..progress.store import ProgressStore
 from ..quest.evaluator import AttemptStats
 from ..quest.loader import load_regions
 from ..quest.models import Level
-from ..quest.scoring import RANK_ORDER, mastery_gaps
+from ..quest.scoring import MASTERY, RANK_ORDER, mastery_gaps
 from ..simulation.state import CommandResult
 from .quest_screen import QuestScreen
 
@@ -57,19 +57,64 @@ class MenuScreen(Screen):
         self.store = store
         self.regions = regions
         self.levels = [lvl for _, lvls in regions for lvl in lvls]
+        self._pending_tab = False
+        # pane_id -> (region index, slug); slug per region for widget ids.
+        self._panes: list[tuple[str, int]] = [
+            (f"tab-{self._slug(name)}", i)
+            for i, (name, _) in enumerate(regions)
+        ]
+        self._unlocked: dict[str, bool] = {}
+
+    @staticmethod
+    def _slug(name: str) -> str:
+        return name.lower().replace(" ", "-")
+
+    def _pane_id(self, region_index: int) -> str:
+        return f"tab-{self._slug(self.regions[region_index][0])}"
+
+    def _list_id(self, region_index: int) -> str:
+        return f"list-{self._slug(self.regions[region_index][0])}"
+
+    def _notice_id(self, region_index: int) -> str:
+        return f"notice-{self._slug(self.regions[region_index][0])}"
+
+    def region_final(self, region_index: int) -> Level:
+        """Gatekeeper: highest-order level of a region."""
+        return max(self.regions[region_index][1], key=lambda l: l.order)
+
+    def is_unlocked(self, region_index: int) -> bool:
+        if region_index == 0:
+            return True
+        final = self.region_final(region_index - 1)
+        return self.store.progress.best_ranks.get(final.id) == MASTERY
+
+    def unlock_notice(self, region_index: int) -> str:
+        final = self.region_final(region_index - 1)
+        name = self.regions[region_index][0]
+        return (
+            f"LOCKED — master '{final.title}' with Mastery "
+            f"to unlock {name}."
+        )
 
     def compose(self) -> ComposeResult:
         yield Header()
         with Vertical(id="menu"):
             yield Static("[bold]NeoVim Quest[/bold]\n[dim]Learn real Neovim workflows by playing.[/dim]")
             yield Static(id="menu-progress")
-            yield Static("[dim](j/k move, l opens)[/dim]")
-            with VerticalScroll(id="level-list"):
-                for name, lvls in self.regions:
-                    yield Static(f"[bold]{name}[/bold]", classes="region-head")
-                    for lvl in lvls:
-                        yield Button(self._label(lvl), id=f"level-{lvl.id}")
-                yield Button("Quit", id="quit", variant="error")
+            yield Static("[dim](j/k move, l opens, gt switches parts)[/dim]")
+            with TabbedContent(initial=self._pane_id(0)):
+                for i, (name, lvls) in enumerate(self.regions):
+                    with TabPane(name, id=self._pane_id(i)):
+                        with VerticalScroll(id=self._list_id(i)):
+                            for lvl in lvls:
+                                yield Button(self._label(lvl),
+                                             id=f"level-{lvl.id}")
+                            # Quit lives inside each tab's scroll list so it
+                            # stays reachable (and visible) at any height.
+                            yield Button("Quit", id=f"quit-{self._slug(name)}",
+                                         variant="error", classes="quit-btn")
+                        yield Static("", id=self._notice_id(i),
+                                     classes="lock-notice")
         yield Footer()
 
     def _label(self, lvl: Level) -> str:
@@ -82,6 +127,15 @@ class MenuScreen(Screen):
         for lvl in self.levels:
             self.query_one(f"#level-{lvl.id}", Button).label = self._label(lvl)
         self.query_one("#menu-progress", Static).update(self._progress_text())
+        for i, (name, lvls) in enumerate(self.regions):
+            unlocked = self.is_unlocked(i)
+            self._unlocked[self._pane_id(i)] = unlocked
+            self.query_one(f"#{self._list_id(i)}",
+                           VerticalScroll).display = unlocked
+            notice = self.query_one(f"#{self._notice_id(i)}", Static)
+            notice.display = not unlocked
+            if not unlocked:
+                notice.update(f"[yellow]{self.unlock_notice(i)}[/yellow]")
 
     def _progress_text(self) -> str:
         completed = set(self.store.progress.completed)
@@ -93,18 +147,43 @@ class MenuScreen(Screen):
 
     def on_mount(self) -> None:
         self._refresh()
-        buttons = list(self.query(Button))
+        buttons = self._buttons()
         if buttons:
             self.set_focus(buttons[0])
 
     def on_screen_resume(self) -> None:
-        # Returning from a quest: ranks/progress may have changed.
+        # Returning from a quest: ranks/progress/locks may have changed.
         self._refresh()
 
     # -- keyboard navigation (vim motions) ------------------------------
 
+    def _active_pane_id(self) -> str:
+        try:
+            return self.query_one(TabbedContent).active
+        except Exception:
+            return self._pane_id(0)
+
+    def _pane_region(self, pane_id: str) -> int:
+        for pid, i in self._panes:
+            if pid == pane_id:
+                return i
+        return 0
+
     def _buttons(self) -> list[Button]:
-        return list(self.query(Button))
+        """Focusable buttons: active tab's levels + its Quit button.
+
+        On a locked tab only Quit is reachable (level buttons hidden).
+        """
+        pane_id = self._active_pane_id()
+        region = self._pane_region(pane_id)
+        try:
+            pane = self.query_one(f"#{pane_id}", TabPane)
+            buttons = list(pane.query(Button))
+        except Exception:
+            return []
+        if not self._unlocked.get(pane_id, region == 0):
+            buttons = [b for b in buttons if "quit-btn" in (b.classes or [])]
+        return buttons
 
     def _move_focus(self, direction: int) -> None:
         buttons = self._buttons()
@@ -120,16 +199,39 @@ class MenuScreen(Screen):
         self.set_focus(target)
         # Focusing alone does not scroll: bring the button into view.
         # Unanimated so keyboard travel stays snappy (and testable).
-        self.query_one("#level-list", VerticalScroll).scroll_to_widget(
-            target, animate=False
-        )
+        pane_id = self._active_pane_id()
+        region = self._pane_region(pane_id)
+        try:
+            self.query_one(f"#{self._list_id(region)}",
+                           VerticalScroll).scroll_to_widget(
+                target, animate=False
+            )
+        except Exception:
+            pass
+
+    def _switch_tab(self, direction: int) -> None:
+        try:
+            tabbed = self.query_one(TabbedContent)
+        except Exception:
+            return
+        panes = [pid for pid, _ in self._panes]
+        try:
+            index = panes.index(tabbed.active)
+        except ValueError:
+            index = 0
+        tabbed.active = panes[(index + direction) % len(panes)]
+        self._pending_tab = False
+        # Focus follows the tab: first level, or Quit on a locked part.
+        buttons = self._buttons()
+        if buttons:
+            self.set_focus(buttons[0])
 
     def _open_focused(self) -> None:
         focused = self.focused
         if not isinstance(focused, Button):
             return
         btn = focused.id or ""
-        if btn == "quit":
+        if btn == "quit" or btn.startswith("quit-"):
             self.app.exit()
         elif btn.startswith("level-"):
             level_id = btn[len("level-"):]
@@ -137,23 +239,37 @@ class MenuScreen(Screen):
             self.app.push_screen(QuestScreen(level, self.store))
 
     async def on_key(self, event) -> None:
-        # Vim motions only: j/k move, l opens. (Enter also activates the
-        # focused button natively; q quits via binding.)
+        # Vim motions only: j/k move, l opens, gt/gT switch parts.
+        # (Enter activates the focused button natively; q quits via binding.)
         key = event.key
         if key == "j":
+            self._pending_tab = False
             self._move_focus(1)
             event.prevent_default()
         elif key == "k":
+            self._pending_tab = False
             self._move_focus(-1)
             event.prevent_default()
         elif key == "l":
+            self._pending_tab = False
             self._open_focused()
             event.prevent_default()
+        elif key == "g":
+            self._pending_tab = True
+            event.prevent_default()
+        elif key == "t" and self._pending_tab:
+            self._switch_tab(1)
+            event.prevent_default()
+        elif key == "T" and self._pending_tab:
+            self._switch_tab(-1)
+            event.prevent_default()
+        elif self._pending_tab:
+            self._pending_tab = False
 
     @on(Button.Pressed)
     def _pressed(self, event: Button.Pressed) -> None:
         btn = event.button.id or ""
-        if btn == "quit":
+        if btn == "quit" or btn.startswith("quit-"):
             self.app.exit()
         elif btn.startswith("level-"):
             level_id = btn[len("level-"):]
@@ -227,9 +343,10 @@ class NvimQuestApp(App):
     #menu Button { margin-top: 0; }
     /* Full-width buttons: rank text ("—" → "Mastery") must never be
        cropped by a width measured from older, shorter labels. */
-    #level-list Button { width: 1fr; }
-    #level-list { height: 1fr; }
-    .region-head { padding-top: 1; }
+    TabPane VerticalScroll Button { width: 1fr; }
+    TabPane VerticalScroll { height: 1fr; }
+    #menu TabbedContent { height: 1fr; }
+    .lock-notice { padding: 1 2; }
     #quest-title { padding: 0 1; }
     #quest-objective { padding: 0 1; color: #9ecbff; }
     #quest-allowed { padding: 0 1; }

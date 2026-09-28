@@ -6,7 +6,9 @@ from .ui.app import NvimQuestApp
 
 
 def main() -> None:
-    NvimQuestApp().run()
+    # Keyboard-only by design (a vim game): no terminal mouse reporting,
+    # so text selection keeps working and every action is a keypress.
+    NvimQuestApp().run(mouse=False)
 
 
 if __name__ == "__main__":
